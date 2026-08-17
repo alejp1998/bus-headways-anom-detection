@@ -564,6 +564,13 @@ def _series_unchanged(graph_key: str, line: str) -> bool:
         ts = db.get_latest_timestamp("London", "headways_series")
         if ts is None:
             return False
+        # Ignore future timestamps (clock skew / stale test data) - never freeze on them
+        try:
+            ts_dt = dt.fromisoformat(str(ts))
+            if ts_dt > dt.now():
+                return False
+        except Exception:
+            pass
         if _LAST_SERIES_TS.get((graph_key, line)) == ts:
             return True
         _LAST_SERIES_TS[(graph_key, line)] = ts

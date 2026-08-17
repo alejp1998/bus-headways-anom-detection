@@ -49,6 +49,18 @@ services:
       - ./config/compose.env
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sqlite3,time,datetime; c=sqlite3.connect('/app/Data/runtime/transit_telemetry.db'); ts=c.execute('SELECT MAX(created_at) FROM headways_burst').fetchone()[0]; c.close(); age=time.time()-datetime.datetime.fromisoformat(ts).timestamp() if ts else 1e9; assert age < 300, f'stale {age:.0f}s'",
+        ]
+      interval: 60s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
     depends_on:
       - dashboard
 
@@ -65,5 +77,11 @@ services:
       - ./config/compose.env
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 120s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     depends_on:
       - dashboard

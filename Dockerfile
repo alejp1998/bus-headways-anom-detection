@@ -28,7 +28,4 @@ USER appuser
 
 EXPOSE 8050
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -fsS http://localhost:8050/ || exit 1
-
 CMD ["python", "Dashboard/index.py"]

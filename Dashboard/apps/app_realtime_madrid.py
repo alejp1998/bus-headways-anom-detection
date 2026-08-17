@@ -589,6 +589,13 @@ def _series_unchanged(graph_key: str, line: str) -> bool:
         ts = db.get_latest_timestamp("Madrid", "headways_series")
         if ts is None:
             return False
+        # Ignore future timestamps (clock skew / stale test data) - never freeze on them
+        try:
+            ts_dt = dt.fromisoformat(str(ts))
+            if ts_dt > dt.now():
+                return False
+        except Exception:
+            pass
         if _LAST_SERIES_TS.get((graph_key, line)) == ts:
             return True
         _LAST_SERIES_TS[(graph_key, line)] = ts
@@ -1302,9 +1309,10 @@ def build_m_dist_graph(series_df, line):
 
 
 def build_anoms_table(anomalies_df):
-    # All bus names
-    bus_names_all = ["bus" + str(i) for i in range(1, 8 + 2)]
-    ["hw" + str(i) + str(i + 1) for i in range(1, 8 + 1)]
+    # All bus names (adaptive to available columns)
+    bus_names_all = [c for c in anomalies_df.columns if c.startswith("bus")]
+    if not bus_names_all:
+        bus_names_all = ["bus1", "bus2"]
 
     if anomalies_df.shape[0] < 1:
         return "No anomalies were detected yet."
@@ -1312,10 +1320,10 @@ def build_anoms_table(anomalies_df):
     # Build group names
     names = []
     for i in range(anomalies_df.shape[0]):
-        group = [anomalies_df.iloc[i][bus_names_all[k]] for k in range(8 + 1)]
+        group = [anomalies_df.iloc[i][bus_names_all[k]] for k in range(len(bus_names_all))]
         name = str(group[0])
         for bus in group[1:]:
-            if bus != 0:
+            if str(bus) != "0":
                 name += "-" + str(bus)
             else:
                 break
