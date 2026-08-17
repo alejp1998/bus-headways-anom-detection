@@ -98,151 +98,369 @@ with open(resolve_path(location + "/Data/Anomalies/models_params.json")) as f:
 layout = html.Div(
     className="",
     children=[
+        # ---- Analysis Settings (static sliders) ----
         html.Div(
-            className="box",
+            className="flex-gap flex-wrap",
+            style={
+                "marginBottom": "1rem",
+                "padding": "0.75rem 1.25rem",
+                "background": "var(--bg-card-subtle)",
+                "borderRadius": "12px",
+                "border": "1px solid var(--border-color)",
+            },
             children=[
-                html.Div(
-                    className="columns",
-                    children=[
-                        html.Div(id="tab-title" + location, className="column"),
+                html.Span(
+                    html.I(className="fa-solid fa-sliders"), style={"color": "var(--text-muted)"}
+                ),
+                html.Label(
+                    [
+                        "Confidence",
                         html.Div(
-                            id="conf" + location,
-                            className="column",
-                            style={"height": "4vh"},
+                            style={"width": "180px"},
                             children=[
-                                dcc.Input(
+                                dcc.Slider(
                                     id="conf-slider" + location,
-                                    type="text",
-                                    value=0,
-                                    style={"display": "none"},
+                                    min=90,
+                                    max=100,
+                                    step=0.05,
+                                    value=98,
+                                    marks={i: f"{i}%" for i in range(90, 101, 2)},
                                 )
                             ],
                         ),
+                    ],
+                    style={
+                        "display": "flex",
+                        "alignItems": "center",
+                        "gap": "0.5rem",
+                        "fontSize": "0.82rem",
+                    },
+                ),
+                html.Label(
+                    [
+                        "Size Threshold",
                         html.Div(
-                            id="size-th" + location,
-                            className="column",
-                            style={"height": "4vh"},
+                            style={"width": "180px"},
                             children=[
-                                dcc.Input(
+                                dcc.Slider(
                                     id="size-th-slider" + location,
-                                    type="text",
-                                    value=0,
-                                    style={"display": "none"},
-                                )
-                            ],
-                        ),
-                        html.Div(
-                            className="column is-narrow",
-                            style={"height": "4vh", "width": "7vh"},
-                            children=[
-                                dcc.Loading(
-                                    id="new-interval-loading" + location,
-                                    type="dot",
-                                    style={"height": "4vh", "width": "7vh"},
-                                ),
-                            ],
-                        ),
-                        html.Div(
-                            className="column is-narrow",
-                            style={"height": "0.5vh"},
-                            children=[
-                                html.Button(
-                                    "Force Update",
-                                    className="button",
-                                    id="update-button" + location,
+                                    min=1,
+                                    max=15,
+                                    step=1,
+                                    value=5,
+                                    marks={i: str(i) for i in range(1, 16, 2)},
                                 )
                             ],
                         ),
                     ],
-                ),
-                html.Div(
-                    className="columns",
-                    children=[
-                        html.Div(
-                            id="flat-hws-div" + location,
-                            className="column",
-                            children=[
-                                dcc.Graph(
-                                    id="flat-hws" + location,
-                                    className="box",
-                                    style={"height": "15vh"},
-                                    figure=go.Figure(),
-                                    clear_on_unhover=True,
-                                )
-                            ],
-                        )
-                    ],
-                ),
-                html.Div(
-                    className="columns",
-                    children=[
-                        html.Div(
-                            id="buses-pos-div" + location,
-                            className="column is-4",
-                            children=[
-                                dcc.Graph(
-                                    id="map" + location,
-                                    className="box",
-                                    style={"height": box_height},
-                                    figure=go.Figure(),
-                                )
-                            ],
-                        ),
-                        html.Div(
-                            id="time-series-hws-div" + location,
-                            className="column is-4",
-                            children=[
-                                dcc.Graph(
-                                    id="time-series-hws" + location,
-                                    className="box",
-                                    style={"height": box_height},
-                                    figure=go.Figure(),
-                                )
-                            ],
-                        ),
-                        html.Div(
-                            id="2d-time-series-hws-div" + location,
-                            className="column is-4",
-                            children=[
-                                dcc.Graph(
-                                    id="2d-time-series-hws" + location,
-                                    className="box",
-                                    style={"height": box_height},
-                                    figure=go.Figure(),
-                                )
-                            ],
-                        ),
-                    ],
-                ),
-                html.Div(
-                    className="columns",
-                    children=[
-                        html.Div(id="mdist-hws-div" + location, className="column is-half"),
-                        html.Div(id="anom-hws-div" + location, className="column is-half"),
-                    ],
+                    style={
+                        "display": "flex",
+                        "alignItems": "center",
+                        "gap": "0.5rem",
+                        "fontSize": "0.82rem",
+                    },
                 ),
             ],
         ),
         html.Div(id="hidden-div" + location, style={"display": "none"}),
-        dcc.Interval(
-            id="interval-component" + location,
-            interval=30 * 1000,  # in milliseconds
-            n_intervals=0,
+        dcc.Interval(id="interval-component" + location, interval=5000, n_intervals=0),
+        # ---- Executive Toolbar ----
+        html.Div(
+            className="modern-card no-hover",
+            style={"padding": "1.2rem 1.5rem", "marginBottom": "1rem"},
+            children=[
+                html.Div(
+                    className="flex-between flex-wrap",
+                    children=[
+                        html.Div(
+                            className="flex-gap flex-wrap",
+                            children=[
+                                html.H1(
+                                    "Madrid Live Transit Monitor",
+                                    style={"fontSize": "1.6rem", "margin": 0},
+                                ),
+                                html.Span(
+                                    [html.Span(className="pulse-indicator"), " LIVE"],
+                                    className="badge-pill success",
+                                    style={"fontSize": "0.7rem"},
+                                ),
+                                html.Span(
+                                    id="tab-title" + location,
+                                    style={"fontSize": "0.95rem", "color": "var(--text-muted)"},
+                                ),
+                            ],
+                        ),
+                        html.Div(
+                            className="flex-gap flex-wrap",
+                            children=[
+                                dcc.Link(
+                                    "L1",
+                                    href="/realtime/madrid/1",
+                                    className="route-btn active",
+                                    style={
+                                        "padding": "0.45rem 0.9rem",
+                                        "minWidth": "0",
+                                        "fontSize": "0.85rem",
+                                    },
+                                ),
+                                dcc.Link(
+                                    "L44",
+                                    href="/realtime/madrid/44",
+                                    className="route-btn",
+                                    style={
+                                        "padding": "0.45rem 0.9rem",
+                                        "minWidth": "0",
+                                        "fontSize": "0.85rem",
+                                    },
+                                ),
+                                dcc.Link(
+                                    "L82",
+                                    href="/realtime/madrid/82",
+                                    className="route-btn",
+                                    style={
+                                        "padding": "0.45rem 0.9rem",
+                                        "minWidth": "0",
+                                        "fontSize": "0.85rem",
+                                    },
+                                ),
+                                dcc.Link(
+                                    "L132",
+                                    href="/realtime/madrid/132",
+                                    className="route-btn",
+                                    style={
+                                        "padding": "0.45rem 0.9rem",
+                                        "minWidth": "0",
+                                        "fontSize": "0.85rem",
+                                    },
+                                ),
+                                dcc.Link(
+                                    "L133",
+                                    href="/realtime/madrid/133",
+                                    className="route-btn",
+                                    style={
+                                        "padding": "0.45rem 0.9rem",
+                                        "minWidth": "0",
+                                        "fontSize": "0.85rem",
+                                    },
+                                ),
+                                html.Button(
+                                    [html.I(className="fa-solid fa-rotate"), " Refresh"],
+                                    className="btn-primary-gradient",
+                                    id="update-button" + location,
+                                    n_clicks=0,
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        # ---- KPI Cards ----
+        html.Div(
+            className="grid-4",
+            style={"marginBottom": "1.5rem"},
+            children=[
+                html.Div(
+                    className="kpi-card",
+                    children=[
+                        html.Div(
+                            className="flex-between",
+                            children=[
+                                html.Span("Active Fleet", className="kpi-label"),
+                                html.I(
+                                    className="fa-solid fa-bus",
+                                    style={"color": "var(--primary-color)"},
+                                ),
+                            ],
+                        ),
+                        html.Div(id="kpi-fleetMadrid", className="kpi-val", children="—"),
+                        html.Span("Vehicles reporting", className="kpi-sub"),
+                    ],
+                ),
+                html.Div(
+                    className="kpi-card",
+                    children=[
+                        html.Div(
+                            className="flex-between",
+                            children=[
+                                html.Span("Mean Headway", className="kpi-label"),
+                                html.I(
+                                    className="fa-solid fa-clock",
+                                    style={"color": "var(--accent-color)"},
+                                ),
+                            ],
+                        ),
+                        html.Div(id="kpi-headwayMadrid", className="kpi-val", children="—"),
+                        html.Span("Avg gap between buses", className="kpi-sub"),
+                    ],
+                ),
+                html.Div(
+                    className="kpi-card",
+                    children=[
+                        html.Div(
+                            className="flex-between",
+                            children=[
+                                html.Span("QoS Regularity", className="kpi-label"),
+                                html.I(
+                                    className="fa-solid fa-gauge-high", style={"color": "#10B981"}
+                                ),
+                            ],
+                        ),
+                        html.Div(id="kpi-qosMadrid", className="kpi-val", children="—"),
+                        html.Span("Service regularity index", className="kpi-sub"),
+                    ],
+                ),
+                html.Div(
+                    className="kpi-card",
+                    children=[
+                        html.Div(
+                            className="flex-between",
+                            children=[
+                                html.Span("Anomalies", className="kpi-label"),
+                                html.I(
+                                    className="fa-solid fa-triangle-exclamation",
+                                    style={"color": "var(--danger-color)"},
+                                ),
+                            ],
+                        ),
+                        html.Div(id="kpi-anomsMadrid", className="kpi-val", children="—"),
+                        html.Span("Detected in current window", className="kpi-sub"),
+                    ],
+                ),
+            ],
+        ),
+        # ---- Main Workspace: Map + Headway Corridor ----
+        html.Div(
+            className="workspace-grid",
+            children=[
+                html.Div(
+                    className="modern-card no-hover",
+                    style={"padding": "1rem"},
+                    children=[
+                        html.Div(
+                            className="flex-between",
+                            style={"marginBottom": "0.6rem"},
+                            children=[
+                                html.H3(
+                                    "Fleet Spatial Map", style={"fontSize": "1.1rem", "margin": 0}
+                                ),
+                                html.Span(
+                                    "Live positions",
+                                    className="badge-pill primary",
+                                    style={"fontSize": "0.65rem"},
+                                ),
+                            ],
+                        ),
+                        dcc.Graph(
+                            id="map" + location,
+                            style={"height": "52vh"},
+                            figure=go.Figure(),
+                            config={"displayModeBar": False, "scrollZoom": True},
+                        ),
+                    ],
+                ),
+                html.Div(
+                    className="modern-card no-hover",
+                    style={"padding": "1rem"},
+                    children=[
+                        html.Div(
+                            className="flex-between",
+                            style={"marginBottom": "0.6rem"},
+                            children=[
+                                html.H3(
+                                    "Headway Corridor", style={"fontSize": "1.1rem", "margin": 0}
+                                ),
+                                html.Span(
+                                    "Bunching risk view",
+                                    className="badge-pill warning",
+                                    style={"fontSize": "0.65rem"},
+                                ),
+                            ],
+                        ),
+                        dcc.Graph(
+                            id="flat-hws" + location,
+                            style={"height": "52vh"},
+                            figure=go.Figure(),
+                            clear_on_unhover=True,
+                            config={"displayModeBar": False},
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        # ---- Analytics Tabs ----
+        html.Div(
+            className="modern-card no-hover",
+            style={"padding": "1rem", "marginTop": "1.5rem"},
+            children=[
+                dcc.Tabs(
+                    id="analytics-tabs" + location,
+                    value="ts1" + location,
+                    className="custom-tabs-container",
+                    children=[
+                        dcc.Tab(
+                            label="Headway Time Series (1D)",
+                            value="ts1" + location,
+                            className="custom-tab",
+                            selected_className="custom-tab--selected",
+                        ),
+                        dcc.Tab(
+                            label="Headway Dynamics (2D)",
+                            value="ts2" + location,
+                            className="custom-tab",
+                            selected_className="custom-tab--selected",
+                        ),
+                        dcc.Tab(
+                            label="Mahalanobis Distance",
+                            value="md" + location,
+                            className="custom-tab",
+                            selected_className="custom-tab--selected",
+                        ),
+                        dcc.Tab(
+                            label="Anomaly Events",
+                            value="an" + location,
+                            className="custom-tab",
+                            selected_className="custom-tab--selected",
+                        ),
+                    ],
+                ),
+                html.Div(
+                    style={"marginTop": "0.5rem"},
+                    children=[
+                        dcc.Graph(
+                            id="time-series-hws" + location,
+                            style={"height": "52vh"},
+                            figure=go.Figure(),
+                            config={"displayModeBar": False},
+                        ),
+                        dcc.Graph(
+                            id="2d-time-series-hws" + location,
+                            style={"height": "52vh"},
+                            figure=go.Figure(),
+                            config={"displayModeBar": False},
+                        ),
+                        dcc.Graph(
+                            id="mdist-hws" + location,
+                            style={"height": "52vh"},
+                            figure=go.Figure(),
+                            config={"displayModeBar": False},
+                        ),
+                        html.Div(
+                            id="anom-hws-div" + location,
+                            style={"height": "52vh", "overflowY": "auto"},
+                        ),
+                    ],
+                ),
+            ],
         ),
     ],
 )
-
-# MAPBOX CONFIGURATION (uses open carto-darkmatter tiles if no token configured)
+# MAPBOX CONFIGURATION (uses carto tiles if no token configured)
 mapbox_access_token = os.environ.get("MAPBOX_ACCESS_TOKEN", "")
-style = (
-    "carto-darkmatter"
-    if not mapbox_access_token
-    else "mapbox://styles/alejp1998/ck9voa0bb002y1ipcx8j00oeu"
-)
-# Plotly template is set globally in app.py (theme-aware); remove local override.
+mapbox_style = "streets" if mapbox_access_token else "carto-darkmatter"
+mapbox_light_style = "light" if mapbox_access_token else "carto-positron"
 
 
-# FUNCTIONS
 def read_df(name):
     if name == "burst":
         # Read last burst of data
@@ -410,12 +628,14 @@ def calc_map_params(df):
     return df, center_x, center_y, zoom
 
 
-def build_map(line_df):
+def build_map(line_df, theme="dark"):
     """
-    Returns a figure with the map of live location of buses
+    Returns a figure with the map of live location of buses (theme-aware).
     """
     if line_df.shape[0] < 1:
-        return "EMPTY"
+        return _empty_figure("No active buses on this line right now.")
+
+    dark = theme == "dark"
 
     # Line and destinations
     line = line_df.iloc[0].line
@@ -430,22 +650,19 @@ def build_map(line_df):
 
     line_df, center_x, center_y, zoom = calc_map_params(line_df)
 
-    # We create the figure object
+    # We create the figure object with theme-aware tiles
     new_map = go.Figure()
-
-    # And set the figure layout
+    map_style = mapbox_light_style if not dark else mapbox_style
     new_map.update_layout(
-        title="<b>BUSES POSITION</b>",
-        margin={"r": 0, "l": 0, "t": 40, "b": 0},
+        margin={"r": 0, "l": 0, "t": 0, "b": 0},
         hovermode="closest",
         showlegend=False,
-        mapbox={
-            "accesstoken": mapbox_access_token if mapbox_access_token else "pk.placeholder",
+        map={
             "bearing": 0,
             "center": {"lat": center_y, "lon": center_x},
             "pitch": 0,
             "zoom": zoom,
-            "style": "carto-darkmatter" if not mapbox_access_token else "streets",
+            "style": map_style,
         },
     )
 
@@ -463,50 +680,51 @@ def build_map(line_df):
     line_stops = stops.loc[stops.id.isin(stop_names)]
 
     # Add the stops to the figure
+    stop_color = "#64748B" if dark else "#94A3B8"
     new_map.add_trace(
-        go.Scattermapbox(
+        go.Scattermap(
             lat=line_stops.lat,
             lon=line_stops.lon,
             mode="markers",
-            marker=go.scattermapbox.Marker(size=10, color="#2F4F4F", opacity=0.5),
+            marker=go.scattermap.Marker(size=8, color=stop_color, opacity=0.55),
             text=line_stops.id,
             hoverinfo="text",
+            name="Stops",
         )
     )
 
-    # Add lines to the figure
+    # Add lines to the figure (direction colored)
     for line_shape in lines_hovered:
-        color = "#1E90FF" if line_shape.iloc[0].direction == 1 else "#B22222"
+        color = "#6366F1" if line_shape.iloc[0].direction == 1 else "#F59E0B"
         new_map.add_trace(
-            go.Scattermapbox(
+            go.Scattermap(
                 lat=line_shape.lat,
                 lon=line_shape.lon,
                 mode="lines",
-                line={"width": 2, "color": color},
-                text=f"Línea : {line}-{line_shape.iloc[0].direction}",
+                line={"width": 3, "color": color},
+                text=f"Route {line}-{line_shape.iloc[0].direction}",
                 hoverinfo="skip",
-                opacity=1,
+                opacity=0.9,
+                name=f"Route {line_shape.iloc[0].direction}",
             )
         )
 
-    # Add the bus points to the figure
+    # Add the bus points to the figure with glowing markers
     for bus in line_df.itertuples():
-        # Assign color based on bus id
         color = colors[bus.bus % len(colors)]
-        # Bus marker
         new_map.add_trace(
-            go.Scattermapbox(
+            go.Scattermap(
                 lat=[bus.lat],
                 lon=[bus.lon],
                 mode="markers",
-                marker=go.scattermapbox.Marker(size=27, opacity=1, color=color),
-                text=[bus.bus],
+                marker=go.scattermap.Marker(
+                    size=16,
+                    color=color,
+                    opacity=0.95,
+                ),
+                text=[f"<b>Bus {bus.bus}</b><br>ETA: {bus.estimateArrive}s"],
                 hoverinfo="text",
-            )
-        )
-        new_map.add_trace(
-            go.Scattermapbox(
-                mode="text", text=str(bus.bus), lat=[bus.lat], lon=[bus.lon], hoverinfo="none"
+                name=f"Bus {bus.bus}",
             )
         )
 
@@ -1053,28 +1271,28 @@ def build_anoms_table(anomalies_df):
     return table
 
 
+def _empty_figure(message):
+    """Return a minimal themed figure with a centered message."""
+    fig = go.Figure()
+    fig.add_annotation(
+        text=message,
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=0.5,
+        showarrow=False,
+        font={"family": "DM Sans, sans-serif", "size": 15, "color": "#94A3B8"},
+    )
+    fig.update_layout(theme_layout("dark"))
+    return fig
+
+
 # CALLBACKS
 
 
-# CALLBACK 0a - New interval loading
+# CALLBACK 0b - Title
 @app.callback(
-    [Output("new-interval-loading" + location, "children")],
-    [
-        Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
-    ],
-)
-def new_interval(n_intervals, n_clicks):
-    return [html.H1("Loading", style={"display": "none"})]
-
-
-# CALLBACK 0b - Title and sliders
-@app.callback(
-    [
-        Output("tab-title" + location, "children"),
-        Output("conf" + location, "children"),
-        Output("size-th" + location, "children"),
-    ],
+    [Output("tab-title" + location, "children")],
     [
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
@@ -1087,80 +1305,7 @@ def update_title_sliders(n_intervals, n_clicks, pathname):
     now = dt.now()
     now = now.replace(microsecond=0)
 
-    with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
-        hyperparams = json.load(f)
-
-    conf = hyperparams[line]["conf"]
-    size_th = hyperparams[line]["size_th"]
-
-    # And return all of them
-    switcher = html.Div(
-        className="flex-gap flex-wrap",
-        style={"marginTop": "0.5rem"},
-        children=[
-            html.Span(
-                "Madrid Lines:",
-                style={"color": "var(--text-muted)", "fontSize": "0.85rem", "fontWeight": "600"},
-            ),
-            dcc.Link(
-                "Line 1",
-                href="/realtime/madrid/1",
-                className=f"badge-pill {'primary' if line == '1' else 'warning'}",
-            ),
-            dcc.Link(
-                "Line 44",
-                href="/realtime/madrid/44",
-                className=f"badge-pill {'primary' if line == '44' else 'warning'}",
-            ),
-            dcc.Link(
-                "Line 82",
-                href="/realtime/madrid/82",
-                className=f"badge-pill {'primary' if line == '82' else 'warning'}",
-            ),
-            dcc.Link(
-                "Line 132",
-                href="/realtime/madrid/132",
-                className=f"badge-pill {'primary' if line == '132' else 'warning'}",
-            ),
-            dcc.Link(
-                "Line 133",
-                href="/realtime/madrid/133",
-                className=f"badge-pill {'primary' if line == '133' else 'warning'}",
-            ),
-        ],
-    )
-    return [
-        [html.H1(f"Madrid Line {line} ({now.time()})", className="title is-3"), switcher],
-        [
-            html.Label(
-                [
-                    "Confidence",
-                    dcc.Slider(
-                        id="conf-slider" + location,
-                        min=90,
-                        max=100,
-                        step=0.05,
-                        marks={i: str(i) + "%" for i in [90 + k * 1 for k in range(11)]},
-                        value=conf * 100,
-                    ),
-                ],
-            )
-        ],
-        [
-            html.Label(
-                [
-                    "Size threshold",
-                    dcc.Slider(
-                        id="size-th-slider" + location,
-                        min=1,
-                        max=15,
-                        marks={i: str(i) for i in range(1, 16)},
-                        value=size_th,
-                    ),
-                ],
-            )
-        ],
-    ]
+    return [f"Line {line} — updated {now.time()}"]
 
 
 # CALLBACK 0c - Sliders update
@@ -1205,7 +1350,7 @@ def update_hyperparams(conf, size_th, pathname):
 
 # CALLBACK 1 - Buses Position
 @app.callback(
-    [Output("buses-pos-div" + location, "children")],
+    [Output("map" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
@@ -1248,26 +1393,15 @@ def update_buses_position(n_intervals, n_clicks, pathname, hoverData, theme="dar
         line_burst = line_burst[line_burst.bus.isin(hover_buses)]
 
     if line_burst.shape[0] < 1:
-        return [html.H1("No buses were found inside the line.", className="title is-5")]
+        return [_empty_figure("No buses were found inside the line.")]
 
-    # Create map
-    new_map = build_map(line_burst)
-
-    # And return all of them
-    return [
-        dcc.Graph(
-            id="map" + location,
-            className="box",
-            style={"height": box_height},
-            figure=new_map,
-            config={"displayModeBar": False},
-        )
-    ]
+    # Create map (theme-aware tiles & markers)
+    return [build_map(line_burst, theme)]
 
 
 # CALLBACK 2 - Buses headways representation
 @app.callback(
-    [Output("flat-hws-div" + location, "children")],
+    [Output("flat-hws" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
@@ -1282,29 +1416,20 @@ def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
 
     line_hws = hws_burst.loc[hws_burst.line == line]
 
+    if line_hws.shape[0] < 1:
+        return [_empty_figure("No headway data available for this line right now.")]
+
     # Create graph
     flat_hws_graph = build_graph(line_hws)
 
-    graph = dcc.Graph(
-        id="flat-hws" + location,
-        className="box",
-        style={"height": "15vh"},
-        figure=flat_hws_graph,
-        config={
-            "displayModeBar": False,
-        },
-        clear_on_unhover=True,
-    )
-
-    # And return all of them
-    graph.figure.update_layout(**theme_layout(theme))
-
-    return [graph]
+    # Apply theme styling and return the figure directly (keeps graph mounted, no flicker)
+    flat_hws_graph.update_layout(**theme_layout(theme))
+    return [flat_hws_graph]
 
 
 # CALLBACK 3 - 1D Headways Time Series
 @app.callback(
-    [Output("time-series-hws-div" + location, "children")],
+    [Output("time-series-hws" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
@@ -1352,9 +1477,8 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
 
     if line_series.shape[0] < 1:
         return [
-            html.H1(
-                "No headways to analyse. There are less than 2 buses inside each line direction.",
-                className="title is-5",
+            _empty_figure(
+                "No headways to analyse. There are less than 2 buses inside each line direction."
             )
         ]
 
@@ -1378,9 +1502,8 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
             break
         elif h_range == hour_ranges[-1]:
             return [
-                html.H1(
-                    f"Hour range for {now.hour}:{now.minute} not defined. Waiting till 7am.",
-                    className="subtitle is-3",
+                _empty_figure(
+                    f"Hour range for {now.hour}:{now.minute} not defined. Waiting till 7am."
                 )
             ]
 
@@ -1398,26 +1521,13 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
 
     time_series_graph = build_time_series_graph(line_series, model, conf)
 
-    graph = dcc.Graph(
-        id="time-series-hws" + location,
-        className="box",
-        style={"height": box_height},
-        figure=time_series_graph,
-        config={"displayModeBar": False},
-    )
-
-    # if n_intervals == 0 :
-    # graph = dcc.Loading(type='cube',children = [graph])
-
-    # And return all of them
-    graph.figure.update_layout(**theme_layout(theme))
-
-    return [graph]
+    time_series_graph.update_layout(**theme_layout(theme))
+    return [time_series_graph]
 
 
 # CALLBACK 4 - 2D Headways Time Series
 @app.callback(
-    [Output("2d-time-series-hws-div" + location, "children")],
+    [Output("2d-time-series-hws" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
@@ -1462,11 +1572,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
             return [html.H1("Click a bus, links not supported.", className="title is-5")]
 
     if line_series.shape[0] < 1:
-        return [
-            html.H1(
-                "No 2d headways to analyse. Click a bus between two buses.", className="title is-5"
-            )
-        ]
+        return [_empty_figure("No 2d headways to analyse. Click a bus between two buses.")]
 
     now = dt.now()
     # Day type
@@ -1488,16 +1594,15 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
             break
         elif h_range == hour_ranges[-1]:
             return [
-                html.H1(
-                    f"Hour range for {now.hour}:{now.minute} not defined. Waiting till 7am.",
-                    className="subtitle is-3",
+                _empty_figure(
+                    f"Hour range for {now.hour}:{now.minute} not defined. Waiting till 7am."
                 )
             ]
 
     try:
         model = models_params_dict[line][day_type][hour_range]["2"]
     except:  # noqa: E722
-        return [html.H1("2D Model for this hour range not available.", className="subtitle is-3")]
+        return [_empty_figure("2D Model for this hour range not available.")]
 
     # Read dict
     while True:
@@ -1511,26 +1616,13 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
 
     time_series_graph = build_2d_time_series_graph(line_series, model, conf)
 
-    graph = dcc.Graph(
-        id="2d-time-series-hws" + location,
-        className="box",
-        style={"height": box_height},
-        figure=time_series_graph,
-        config={"displayModeBar": False},
-    )
-
-    # if n_intervals == 0 :
-    # graph = dcc.Loading(type='cube',children = [graph])
-
-    # And return all of them
-    graph.figure.update_layout(**theme_layout(theme))
-
-    return [graph]
+    time_series_graph.update_layout(**theme_layout(theme))
+    return [time_series_graph]
 
 
 # CALLBACK 5 - Mahalanobis Distance series
 @app.callback(
-    [Output("mdist-hws-div" + location, "children")],
+    [Output("mdist-hws" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
@@ -1597,35 +1689,20 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"
 
         if line_series.shape[0] < 1:
             return [
-                html.H1(
-                    "No headways to analyse. There are less than 2 buses inside each line direction.",
-                    className="title is-5",
+                _empty_figure(
+                    "No headways to analyse. There are less than 2 buses inside each line direction."
                 )
             ]
 
         # Create mh dist graph
         m_dist_graph = build_m_dist_graph(line_series, line)
 
-        graph = dcc.Graph(
-            id="mdist-hws" + location,
-            className="box",
-            style={"height": box_height},
-            figure=m_dist_graph,
-            config={"displayModeBar": False},
-        )
-
-        # if n_intervals == 0 :
-        # graph = dcc.Loading(type='cube',children = [graph])
-
-        # And return all of them
-        graph.figure.update_layout(**theme_layout(theme))
-
-        return [graph]
+        m_dist_graph.update_layout(**theme_layout(theme))
+        return [m_dist_graph]
     except:  # noqa: E722
         return [
-            html.H1(
-                "No headways to analyse. There are less than 2 buses inside each line direction.",
-                className="title is-5",
+            _empty_figure(
+                "No headways to analyse. There are less than 2 buses inside each line direction."
             )
         ]
 
@@ -1665,4 +1742,84 @@ def update_anomalies_table(n_intervals, n_clicks, pathname):
             style={"height": box_height},
             children=[html.H2("DETECTED ANOMALIES", className="title is-5"), anoms_table],
         )
+    ]
+
+
+# CALLBACK 7 - KPI cards
+@app.callback(
+    [
+        Output("kpi-fleetMadrid", "children"),
+        Output("kpi-headwayMadrid", "children"),
+        Output("kpi-qosMadrid", "children"),
+        Output("kpi-anomsMadrid", "children"),
+    ],
+    [
+        Input("interval-component" + location, "n_intervals"),
+        Input("update-button" + location, "n_clicks"),
+        Input("url", "pathname"),
+    ],
+)
+def update_kpis(n_intervals, n_clicks, pathname):
+    line = pathname[17:]
+    try:
+        hws = read_df("hws_burst")
+        hws_line = hws.loc[hws.line == line]
+        line_hws = hws_line.loc[hws_line.hw_pos > 0]
+
+        fleet = int(hws_line["busB"].nunique())
+        mean_hw = int(line_hws.headway.mean()) if line_hws.shape[0] > 0 else 0
+
+        # QoS regularity: share of observations within 2 sigma of the modeled mean
+        now = dt.now()
+        day_type = "LA" if now.weekday() <= 4 else ("SA" if now.weekday() == 5 else "FE")
+        hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
+        hour_range = None
+        for h_range in hour_ranges:
+            if h_range[0] <= now.hour < h_range[1]:
+                hour_range = str(h_range[0]) + "-" + str(h_range[1])
+                break
+
+        if hour_range and line in models_params_dict and day_type in models_params_dict[line]:
+            model = models_params_dict[line][day_type].get(hour_range, {})
+            m1 = model.get("1", {})
+            if m1 and line_hws.shape[0] > 0:
+                mu = float(m1.get("mean", 0))
+                std = float(m1.get("cov_matrix", 1))
+                if std > 0:
+                    within = ((line_hws.headway - mu).abs() <= 2 * std).mean()
+                    qos = int(round(within * 100))
+                else:
+                    qos = 100
+            else:
+                qos = 0
+        else:
+            qos = 0
+
+        anoms = read_df("anomalies")
+        anoms_line = anoms.loc[anoms.line == line] if anoms.shape[0] > 0 else anoms
+        n_anoms = int(anoms_line.shape[0])
+
+        return [str(fleet), f"{mean_hw}s", f"{qos}%", str(n_anoms)]
+    except Exception:
+        return ["—", "—", "—", "—"]
+
+
+# CALLBACK 8 - Analytics tab switching (show/hide panels)
+@app.callback(
+    [
+        Output("time-series-hws" + location, "style"),
+        Output("2d-time-series-hws" + location, "style"),
+        Output("mdist-hws" + location, "style"),
+        Output("anom-hws-div" + location, "style"),
+    ],
+    [Input("analytics-tabs" + location, "value")],
+)
+def switch_analytics_tab(tab):
+    hidden = {"display": "none"}
+    visible = {"height": "52vh"}
+    return [
+        visible if tab == "ts1" + location else hidden,
+        visible if tab == "ts2" + location else hidden,
+        visible if tab == "md" + location else hidden,
+        {"height": "52vh", "overflowY": "auto"} if tab == "an" + location else hidden,
     ]

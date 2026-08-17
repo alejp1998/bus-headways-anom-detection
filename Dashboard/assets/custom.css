@@ -88,9 +88,6 @@
 
 * {
   box-sizing: border-box;
-  transition:
-    background-color 0.25s ease,
-    border-color 0.25s ease;
 }
 
 body {
@@ -224,6 +221,51 @@ h6,
   border-color: var(--border-color) !important;
 }
 
+/* KPI Stat Cards */
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.2rem 1.4rem;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 105px;
+  position: relative;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-glow);
+}
+
+.kpi-val {
+  font-family: var(--font-heading);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0.35rem 0 0.15rem 0;
+  line-height: 1.1;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.kpi-sub {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
 /* Stat Badges */
 .badge-pill {
   display: inline-flex;
@@ -251,6 +293,12 @@ h6,
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.badge-pill.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
 .badge-pill.primary {
   background: rgba(139, 92, 246, 0.12);
   color: #8b5cf6;
@@ -269,7 +317,7 @@ h6,
   background: var(--bg-card-subtle);
   border: 1px solid var(--border-color);
   color: var(--text-main);
-  padding: 0.75rem 1.25rem;
+  padding: 0.65rem 1.15rem;
   border-radius: 12px;
   font-weight: 600;
   font-family: var(--font-heading);
@@ -279,10 +327,11 @@ h6,
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
-  min-width: 110px;
+  min-width: 100px;
 }
 
-.route-btn:hover {
+.route-btn:hover,
+.route-btn.active {
   background: var(--primary-gradient);
   border-color: transparent;
   color: #ffffff !important;
@@ -296,7 +345,7 @@ h6,
   background: var(--primary-gradient) !important;
   color: #ffffff !important;
   border: none !important;
-  padding: 0.6rem 1.25rem !important;
+  padding: 0.55rem 1.15rem !important;
   border-radius: 10px !important;
   font-weight: 600 !important;
   font-family: var(--font-heading) !important;
@@ -333,16 +382,68 @@ h6,
   box-shadow: 0 4px 15px rgba(139, 92, 246, 0.35) !important;
 }
 
+/* Segmented Tabs */
+.custom-tabs-container {
+  display: flex;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 1rem;
+}
+
+.custom-tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-tab:hover {
+  color: var(--text-main);
+}
+
+.custom-tab--selected,
+.custom-tab.active {
+  background: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+}
+
+/* Modern Workspace Grid */
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Graph container & plot wrappers */
 .js-plotly-plot,
 .plot-container {
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
 }
 
 /* Modern Range & Sliders */
 .rc-slider {
-  margin: 1rem 0;
+  margin: 0.75rem 0;
 }
 .rc-slider-track {
   background: var(--primary-gradient) !important;
@@ -368,16 +469,18 @@ h6,
   color: var(--text-main) !important;
   border: 1px solid var(--border-color) !important;
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  padding: 8px 12px !important;
 }
 .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
   background-color: var(--bg-card) !important;
   color: var(--text-main) !important;
   border: 1px solid var(--border-color) !important;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
+  padding: 6px 12px !important;
 }
 
 /* Grid & Layout helpers */
@@ -395,7 +498,7 @@ h6,
 
 .grid-4 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.25rem;
 }
 
