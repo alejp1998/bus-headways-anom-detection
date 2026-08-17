@@ -124,7 +124,7 @@ def display_page(pathname):
             return app_realtime_madrid.layout
         elif pathname.startswith("/realtime/london"):
             line = pathname.split("/")[-1] if len(pathname.split("/")) > 3 else ""
-            if line not in ["18", "25"]:
+            if line not in ["18", "24", "25", "73"]:
                 return html.Div(
                     className="modern-card",
                     style={"textAlign": "center", "padding": "3rem"},

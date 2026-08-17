@@ -398,7 +398,7 @@ def get_latest_headways_df(city: str, line: str | None = None) -> pd.DataFrame:
     if line is not None:
         query = """
             SELECT line, direction, bus_a AS busA, bus_b AS busB, hw_pos,
-                   headway, bus_a_ttls, bus_b_ttls, created_at AS datetime
+                   headway, bus_a_ttls AS busA_ttls, bus_b_ttls AS busB_ttls, created_at AS datetime
             FROM headways_burst
             WHERE city = ? AND line = ?
               AND created_at = (SELECT MAX(created_at) FROM headways_burst WHERE city = ? AND line = ?)
@@ -407,7 +407,7 @@ def get_latest_headways_df(city: str, line: str | None = None) -> pd.DataFrame:
     else:
         query = """
             SELECT line, direction, bus_a AS busA, bus_b AS busB, hw_pos,
-                   headway, bus_a_ttls, bus_b_ttls, created_at AS datetime
+                   headway, bus_a_ttls AS busA_ttls, bus_b_ttls AS busB_ttls, created_at AS datetime
             FROM headways_burst
             WHERE city = ?
               AND created_at = (SELECT MAX(created_at) FROM headways_burst WHERE city = ?)

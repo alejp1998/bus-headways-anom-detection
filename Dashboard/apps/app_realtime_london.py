@@ -1,5 +1,6 @@
 import json
 import math
+import time
 from datetime import datetime as dt
 from datetime import timedelta
 
@@ -58,7 +59,7 @@ colors2 = [
     "#f79cd4",
 ]
 
-max_ttls = {"18": 4800, "25": 5500}
+max_ttls = {"18": 4800, "24": 7200, "25": 5500, "73": 7200}
 
 box_height = "33.3vh"
 
@@ -449,47 +450,60 @@ def str_to_int(s):
     return sum(ord(c) for c in str(s))
 
 
-def read_df(name):
+def _read_db(name, line):
+    """Fast database read for live telemetry (returns None when unavailable)."""
+    import sys
+
+    root_path = resolve_path(".")
+    if root_path not in sys.path:
+        sys.path.insert(0, root_path)
+    from core import db
+
     if name == "burst":
-        # Read last burst of data
-        df = pd.read_csv(
-            resolve_path(location + "/Data/RealTime/buses_data_burst_cleaned.csv"),
-            dtype={
-                "id": "int32",
-                "bus": "str",
-                "stop": "str",
-                "line": "str",
-                "direction": "uint16",
-                "bearing": "uint16",
-                "estimateArrive": "int16",
-            },
-        )[["id", "bus", "stop", "line", "direction", "bearing", "datetime", "estimateArrive"]]
-        # Parse the dates
-        df["datetime"] = pd.to_datetime(df["datetime"], format="%Y-%m-%d %H:%M:%S.%f")
+        df = db.get_latest_burst_df("London", str(line) if line else None)
     elif name == "hws_burst":
-        # Read last processed headways
-        df = pd.read_csv(
-            resolve_path(location + "/Data/RealTime/headways_burst.csv"),
-            dtype={
-                "line": "str",
-                "direction": "uint16",
-                "busA": "str",
-                "busB": "str",
-                "headway": "int16",
-                "busB_ttls": "uint16",
-            },
-        )[["line", "direction", "datetime", "hw_pos", "busA", "busB", "headway", "busB_ttls"]]
+        df = db.get_latest_headways_df("London", str(line) if line else None)
     elif name == "series":
-        # Read last series data
-        df = pd.read_csv(
-            resolve_path(location + "/Data/RealTime/series.csv"), dtype={"line": "str"}
-        )
+        df = db.get_series_df("London", str(line) if line else "25", dim=1, limit=300)
     elif name == "anomalies":
-        # Read last anomalies data
-        df = pd.read_csv(
-            resolve_path(location + "/Data/Anomalies/anomalies.csv"), dtype={"line": "str"}
-        )
-    return df
+        df = db.get_anomalies_df("London", str(line) if line else "25", limit=100)
+    else:
+        return None
+    return df if not df.empty else None
+
+
+def _read_csv_fallback(name, line):
+    """Legacy CSV fallback when the database is empty."""
+    file_map = {
+        "burst": "/Data/RealTime/buses_data_burst_cleaned.csv",
+        "hws_burst": "/Data/RealTime/headways_burst.csv",
+        "series": "/Data/RealTime/series.csv",
+        "anomalies": "/Data/Anomalies/anomalies.csv",
+    }
+    rel = file_map.get(name)
+    if rel is None:
+        return pd.DataFrame()
+    p = resolve_path(location + rel)
+    if not (os.path.exists(p) and os.path.getsize(p) > 0):
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(p, dtype={"line": "str"})
+        if line and not df.empty:
+            df = df[df["line"] == str(line)]
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+
+def read_df(name, line=None):
+    """Read latest telemetry: fast SQLite first, CSV fallback second."""
+    try:
+        df = _read_db(name, line)
+        if df is not None:
+            return df
+    except Exception:
+        pass
+    return _read_csv_fallback(name, line)
 
 
 def ellipse(mus, cov_matrix, conf):
@@ -903,15 +917,16 @@ def build_2d_time_series_graph(series_df, model, conf):
 def build_m_dist_graph(series_df, line):
     graph = go.Figure()
 
-    # Read dict
-    while True:
+    # Read dict (bounded retries - never spin forever)
+    conf = 0.98
+    for _ in range(5):
         try:
             with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
                 hyperparams = json.load(f)
-            conf = hyperparams[line]["conf"]
+            conf = hyperparams.get(line, {}).get("conf", 0.98)
             break
-        except:  # noqa: E722
-            continue
+        except Exception:
+            time.sleep(0.2)
 
     # Set title and layout
     graph.update_layout(
@@ -928,9 +943,11 @@ def build_m_dist_graph(series_df, line):
     if series_df.shape[0] < 1:
         return graph
 
-    # All bus names
-    bus_names_all = ["bus" + str(i) for i in range(1, 12 + 2)]
-    hw_names_all = ["hw" + str(i) + str(i + 1) for i in range(1, 12 + 1)]
+    # All bus names (adaptive to whatever dimensionality the data carries)
+    avail_bus = [c for c in series_df.columns if c.startswith("bus")]
+    avail_hw = [c for c in series_df.columns if c.startswith("hw")]
+    bus_names_all = avail_bus
+    hw_names_all = avail_hw
 
     # Min and max datetimes
     min_time = series_df.datetime.min()
@@ -940,13 +957,13 @@ def build_m_dist_graph(series_df, line):
     unique_groups = []
     unique_groups_df = series_df.drop_duplicates(bus_names_all)
     for i in range(unique_groups_df.shape[0]):
-        group = [unique_groups_df.iloc[i][bus_names_all[k]] for k in range(12 + 1)]
+        group = [unique_groups_df.iloc[i][bus_names_all[k]] for k in range(len(bus_names_all))]
         unique_groups.append(group)
 
     last_dim = 0
     for group in unique_groups:
         # Build indexing conditions
-        conds = [series_df[bus_names_all[k]] == group[k] for k in range(12 + 1)]
+        conds = [series_df[bus_names_all[k]] == group[k] for k in range(len(bus_names_all))]
         final_cond = True
         for cond in conds:
             final_cond &= cond
@@ -985,7 +1002,8 @@ def build_m_dist_graph(series_df, line):
         for _index, row in group_df.iterrows():
             hw_value = str(row.hw12)
             for hw_name in hw_names_all[1:dim]:
-                hw_value += "," + str(row[hw_name])
+                if hw_name in group_df.columns:
+                    hw_value += "," + str(row[hw_name])
             hw_values.append(hw_value)
 
         # Build group trace
@@ -1014,9 +1032,10 @@ def build_m_dist_graph(series_df, line):
 
 
 def build_anoms_table(anomalies_df):
-    # All bus names
-    bus_names_all = ["bus" + str(i) for i in range(1, 12 + 2)]
-    ["hw" + str(i) + str(i + 1) for i in range(1, 12 + 1)]
+    # All bus names (adaptive to available columns)
+    bus_names_all = [c for c in anomalies_df.columns if c.startswith("bus")]
+    if not bus_names_all:
+        bus_names_all = ["bus1", "bus2"]
 
     if anomalies_df.shape[0] < 1:
         return "No anomalies were detected yet."
@@ -1024,7 +1043,7 @@ def build_anoms_table(anomalies_df):
     # Build group names
     names = []
     for i in range(anomalies_df.shape[0]):
-        group = [anomalies_df.iloc[i][bus_names_all[k]] for k in range(12 + 1)]
+        group = [anomalies_df.iloc[i][bus_names_all[k]] for k in range(len(bus_names_all))]
         name = str(group[0])
         for bus in group[1:]:
             if bus != "0":
@@ -1106,7 +1125,7 @@ def _empty_figure(message):
     ],
 )
 def update_title_sliders(n_intervals, n_clicks, pathname):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
     now = dt.now()
     now = now.replace(microsecond=0)
@@ -1124,7 +1143,7 @@ def update_title_sliders(n_intervals, n_clicks, pathname):
     ],
 )
 def update_hyperparams(conf, size_th, pathname):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
     try:
         if (conf == 0) | (size_th == 0):
             return [html.H1("", className="box subtitle is-6")]
@@ -1165,9 +1184,9 @@ def update_hyperparams(conf, size_th, pathname):
     ],
 )
 def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
-    hws_burst = read_df("hws_burst")
+    hws_burst = read_df("hws_burst", line=line)
 
     line_hws = hws_burst.loc[hws_burst.line == line]
 
@@ -1194,13 +1213,13 @@ def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
     ],
 )
 def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
     try:
         if "text" in hoverData["points"][0].keys():
             hover_buses = [hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0]]
         else:
-            hws_burst = read_df("hws_burst")
+            hws_burst = read_df("hws_burst", line=line)
 
             dest = hoverData["points"][0]["y"][3:-1]
             x = hoverData["points"][0]["x"]
@@ -1216,7 +1235,7 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
     except:  # noqa: E722
         hover_buses = None
 
-    series = read_df("series")
+    series = read_df("series", line=line)
 
     line_series = series.loc[(series.line == line) & (series.dim == 1)]
 
@@ -1262,15 +1281,16 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
 
     model = models_params_dict[line][day_type][hour_range]["1"]
 
-    # Read dict
-    while True:
+    # Read dict (bounded retries - never spin forever)
+    conf = 0.98
+    for _ in range(5):
         try:
             with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
                 hyperparams = json.load(f)
-            conf = hyperparams[line]["conf"]
+            conf = hyperparams.get(line, {}).get("conf", 0.98)
             break
-        except:  # noqa: E722
-            continue
+        except Exception:
+            time.sleep(0.2)
 
     time_series_graph = build_time_series_graph(line_series, model, conf)
 
@@ -1290,13 +1310,13 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
     ],
 )
 def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
     try:
         if "text" in hoverData["points"][0].keys():
             hover_buses = [hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0]]
         else:
-            hws_burst = read_df("hws_burst")
+            hws_burst = read_df("hws_burst", line=line)
 
             dest = hoverData["points"][0]["y"][3:-1]
             x = hoverData["points"][0]["x"]
@@ -1312,7 +1332,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
     except:  # noqa: E722
         hover_buses = None
 
-    series = read_df("series")
+    series = read_df("series", line=line)
 
     line_series = series.loc[(series.line == line) & (series.dim == 2)]
 
@@ -1355,15 +1375,16 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
     except:  # noqa: E722
         return [_empty_figure("2D Model for this hour range not available.")]
 
-    # Read dict
-    while True:
+    # Read dict (bounded retries - never spin forever)
+    conf = 0.98
+    for _ in range(5):
         try:
             with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
                 hyperparams = json.load(f)
-            conf = hyperparams[line]["conf"]
+            conf = hyperparams.get(line, {}).get("conf", 0.98)
             break
-        except:  # noqa: E722
-            continue
+        except Exception:
+            time.sleep(0.2)
 
     time_series_graph = build_2d_time_series_graph(line_series, model, conf)
 
@@ -1383,13 +1404,13 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
     ],
 )
 def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
     try:
         if "text" in hoverData["points"][0].keys():
             hover_buses = [hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0]]
         else:
-            hws_burst = read_df("hws_burst")
+            hws_burst = read_df("hws_burst", line=line)
 
             dest = hoverData["points"][0]["y"][3:-1]
             x = hoverData["points"][0]["x"]
@@ -1405,7 +1426,7 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"
     except:  # noqa: E722
         hover_buses = None
 
-    series = read_df("series")
+    series = read_df("series", line=line)
 
     line_series = series.loc[series.line == line]
 
@@ -1459,9 +1480,9 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"
     ],
 )
 def update_anomalies_table(n_intervals, n_clicks, pathname):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
-    anomalies = read_df("anomalies")
+    anomalies = read_df("anomalies", line=line)
 
     if anomalies.shape[0] < 1:
         return [
@@ -1502,9 +1523,9 @@ def update_anomalies_table(n_intervals, n_clicks, pathname):
     ],
 )
 def update_kpis(n_intervals, n_clicks, pathname):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
     try:
-        hws = read_df("hws_burst")
+        hws = read_df("hws_burst", line=line)
         hws_line = hws.loc[hws.line == line]
         line_hws = hws_line.loc[hws_line.hw_pos > 0]
 
@@ -1537,7 +1558,7 @@ def update_kpis(n_intervals, n_clicks, pathname):
         else:
             qos = 0
 
-        anoms = read_df("anomalies")
+        anoms = read_df("anomalies", line=line)
         anoms_line = anoms.loc[anoms.line == line] if anoms.shape[0] > 0 else anoms
         n_anoms = int(anoms_line.shape[0])
 

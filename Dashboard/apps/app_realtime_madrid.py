@@ -1,5 +1,6 @@
 import json
 import math
+import time
 from datetime import datetime as dt
 
 import numpy as np
@@ -1102,15 +1103,16 @@ def build_2d_time_series_graph(series_df, model, conf):
 def build_m_dist_graph(series_df, line):
     graph = go.Figure()
 
-    # Read dict
-    while True:
+    # Read dict (bounded retries - never spin forever)
+    conf = 0.98
+    for _ in range(5):
         try:
             with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
                 hyperparams = json.load(f)
-            conf = hyperparams[line]["conf"]
+            conf = hyperparams.get(line, {}).get("conf", 0.98)
             break
-        except:  # noqa: E722
-            continue
+        except Exception:
+            time.sleep(0.2)
 
     # Set title and layout
     graph.update_layout(
@@ -1308,7 +1310,7 @@ def _empty_figure(message):
     ],
 )
 def update_title_sliders(n_intervals, n_clicks, pathname):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
     now = dt.now()
     now = now.replace(microsecond=0)
@@ -1326,7 +1328,7 @@ def update_title_sliders(n_intervals, n_clicks, pathname):
     ],
 )
 def update_hyperparams(conf, size_th, pathname):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
     try:
         if (conf == 0) | (size_th == 0):
             return [html.H1("", className="box subtitle is-6")]
@@ -1368,7 +1370,7 @@ def update_hyperparams(conf, size_th, pathname):
     ],
 )
 def update_buses_position(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
     try:
         if "text" in hoverData["points"][0].keys():
@@ -1376,7 +1378,7 @@ def update_buses_position(n_intervals, n_clicks, pathname, hoverData, theme="dar
                 int(hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0])
             ]
         else:
-            hws_burst = read_df("hws_burst")
+            hws_burst = read_df("hws_burst", line=line)
 
             dest = hoverData["points"][0]["y"][3:-1]
             x = hoverData["points"][0]["x"]
@@ -1393,7 +1395,7 @@ def update_buses_position(n_intervals, n_clicks, pathname, hoverData, theme="dar
     except:  # noqa: E722
         hover_buses = None
 
-    burst = read_df("burst")
+    burst = read_df("burst", line=line)
 
     # Line dataframe
     line_burst = burst.loc[burst.line == line]
@@ -1418,9 +1420,9 @@ def update_buses_position(n_intervals, n_clicks, pathname, hoverData, theme="dar
     ],
 )
 def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
-    hws_burst = read_df("hws_burst")
+    hws_burst = read_df("hws_burst", line=line)
 
     line_hws = hws_burst.loc[hws_burst.line == line]
 
@@ -1447,7 +1449,7 @@ def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
     ],
 )
 def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
     try:
         if "text" in hoverData["points"][0].keys():
@@ -1455,7 +1457,7 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
                 int(hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0])
             ]
         else:
-            hws_burst = read_df("hws_burst")
+            hws_burst = read_df("hws_burst", line=line)
 
             dest = hoverData["points"][0]["y"][3:-1]
             x = hoverData["points"][0]["x"]
@@ -1471,7 +1473,7 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
     except:  # noqa: E722
         hover_buses = None
 
-    series = read_df("series")
+    series = read_df("series", line=line)
 
     line_series = series.loc[(series.line == line) & (series.dim == 1)]
 
@@ -1517,15 +1519,16 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
 
     model = models_params_dict[line][day_type][hour_range]["1"]
 
-    # Read dict
-    while True:
+    # Read dict (bounded retries - never spin forever)
+    conf = 0.98
+    for _ in range(5):
         try:
             with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
                 hyperparams = json.load(f)
-            conf = hyperparams[line]["conf"]
+            conf = hyperparams.get(line, {}).get("conf", 0.98)
             break
-        except:  # noqa: E722
-            continue
+        except Exception:
+            time.sleep(0.2)
 
     time_series_graph = build_time_series_graph(line_series, model, conf)
 
@@ -1545,7 +1548,7 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
     ],
 )
 def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
     try:
         if "text" in hoverData["points"][0].keys():
@@ -1553,7 +1556,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
                 int(hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0])
             ]
         else:
-            hws_burst = read_df("hws_burst")
+            hws_burst = read_df("hws_burst", line=line)
 
             dest = hoverData["points"][0]["y"][3:-1]
             x = hoverData["points"][0]["x"]
@@ -1569,7 +1572,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
     except:  # noqa: E722
         hover_buses = None
 
-    series = read_df("series")
+    series = read_df("series", line=line)
 
     line_series = series.loc[(series.line == line) & (series.dim == 2)]
 
@@ -1612,15 +1615,16 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
     except:  # noqa: E722
         return [_empty_figure("2D Model for this hour range not available.")]
 
-    # Read dict
-    while True:
+    # Read dict (bounded retries - never spin forever)
+    conf = 0.98
+    for _ in range(5):
         try:
             with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
                 hyperparams = json.load(f)
-            conf = hyperparams[line]["conf"]
+            conf = hyperparams.get(line, {}).get("conf", 0.98)
             break
-        except:  # noqa: E722
-            continue
+        except Exception:
+            time.sleep(0.2)
 
     time_series_graph = build_2d_time_series_graph(line_series, model, conf)
 
@@ -1641,7 +1645,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
 )
 def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     try:
-        line = pathname[17:]
+        line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
         try:
             if "text" in hoverData["points"][0].keys():
@@ -1649,7 +1653,7 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"
                     int(hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0])
                 ]
             else:
-                hws_burst = read_df("hws_burst")
+                hws_burst = read_df("hws_burst", line=line)
 
                 dest = hoverData["points"][0]["y"][3:-1]
                 x = hoverData["points"][0]["x"]
@@ -1665,7 +1669,7 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"
         except:  # noqa: E722
             hover_buses = None
 
-        series = read_df("series")
+        series = read_df("series", line=line)
 
         line_series = series.loc[series.line == line]
 
@@ -1725,9 +1729,9 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"
     ],
 )
 def update_anomalies_table(n_intervals, n_clicks, pathname):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
 
-    anomalies = read_df("anomalies")
+    anomalies = read_df("anomalies", line=line)
 
     if anomalies.shape[0] < 1:
         return [
@@ -1768,9 +1772,9 @@ def update_anomalies_table(n_intervals, n_clicks, pathname):
     ],
 )
 def update_kpis(n_intervals, n_clicks, pathname):
-    line = pathname[17:]
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
     try:
-        hws = read_df("hws_burst")
+        hws = read_df("hws_burst", line=line)
         hws_line = hws.loc[hws.line == line]
         line_hws = hws_line.loc[hws_line.hw_pos > 0]
 
@@ -1803,7 +1807,7 @@ def update_kpis(n_intervals, n_clicks, pathname):
         else:
             qos = 0
 
-        anoms = read_df("anomalies")
+        anoms = read_df("anomalies", line=line)
         anoms_line = anoms.loc[anoms.line == line] if anoms.shape[0] > 0 else anoms
         n_anoms = int(anoms_line.shape[0])
 

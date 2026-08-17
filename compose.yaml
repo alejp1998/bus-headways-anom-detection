@@ -1,0 +1,69 @@
+# Docker Compose for Bus Headways Anomaly Detection
+#
+# Three services sharing one data volume:
+#   1. dashboard       — Dash web UI on :8050
+#   2. london-collector— live TfL polling + anomaly inference (40s cycle)
+#   3. madrid-watchdog — EMT MobilityLabs activation poller (until approved)
+#
+# Usage:
+#   ./scripts/compose.sh up --build          # build & start all
+#   ./scripts/compose.sh up dashboard        # start only the dashboard
+#   ./scripts/compose.sh ps                  # inspect health
+#   ./scripts/compose.sh logs -f london-collector
+
+name: bus-headways
+
+services:
+  dashboard:
+    container_name: bus-headways-dashboard
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "Dashboard/index.py"]
+    ports:
+      - "8050:8050"
+    volumes:
+      - .:/app # live-reload code + shared data/DB
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - ./config/compose.env
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8050/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  london-collector:
+    container_name: bus-headways-london
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "scripts/run_london_live.py"]
+    volumes:
+      - .:/app
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - ./config/compose.env
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    restart: unless-stopped
+    depends_on:
+      - dashboard
+
+  madrid-watchdog:
+    container_name: bus-headways-madrid
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "scripts/poll_madrid_access.py"]
+    volumes:
+      - .:/app
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - ./config/compose.env
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    restart: unless-stopped
+    depends_on:
+      - dashboard
