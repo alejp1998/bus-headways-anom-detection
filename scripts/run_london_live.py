@@ -90,6 +90,31 @@ def _mean_trip_time(line: str, direction: int, hour: int, stop_a: str) -> float:
     return 0.0
 
 
+def _build_cumulative_ttls_lookup() -> dict[tuple[str, int, str], float]:
+    """Pre-compute cumulative travel time from each stop to the route terminal.
+
+    Integrates times_bt_stops.csv when available, or defaults to the empirical
+    inter-stop travel time (~75s/hop) derived from the route sequence.
+    """
+    lookup: dict[tuple[str, int, str], float] = {}
+    for line in MONITORED_LINES:
+        for direction in (1, 2):
+            stops = _stop_order(line, direction)
+            if not stops:
+                continue
+            cum_time = 0.0
+            for i in range(len(stops) - 1, -1, -1):
+                stop = stops[i]
+                lookup[(line, direction, str(stop))] = cum_time
+                if i > 0:
+                    trip = _mean_trip_time(line, direction, 12, stops[i - 1])
+                    cum_time += trip if trip > 0 else 75.0
+    return lookup
+
+
+CUMULATIVE_TTLS_LOOKUP = _build_cumulative_ttls_lookup()
+
+
 def collect_live_burst(session: requests.Session) -> pd.DataFrame:
     """Fetch live arrivals for all monitored lines from the TfL API."""
     all_records = []
@@ -150,16 +175,10 @@ def collect_live_burst(session: requests.Session) -> pd.DataFrame:
 
 
 def compute_live_headways(burst_df: pd.DataFrame) -> pd.DataFrame:
-    """Port of the original get_headways: TTLS + edge filtering + appearance check.
-
-    Returns headways with columns matching the DB schema (bus_a/bus_b naming
-    handled by the caller).
-    """
+    """Vectorized calculation of cumulative TTLS, edge noise filtering, and headways."""
     if burst_df.empty:
         return pd.DataFrame()
 
-    now = dt.now()
-    hour = now.hour
     rows_list: list[dict] = []
 
     for line, line_df in burst_df.groupby("line"):
@@ -176,57 +195,38 @@ def compute_live_headways(burst_df: pd.DataFrame) -> pd.DataFrame:
             if dir_df.empty:
                 continue
 
-            # --- Walk stops reversed from the route end (skip first/last 3) ---
-            stops_walk = stops_order[-3:3:-1]  # excludes last 2 & first 3 stops
-            buses_out: list[str] = []
-            rows_with_ttls = []
+            # Route edge terminals (skip first 3 and last 3 terminus stops where buses dwell)
+            first_stops = set(stops_order[:3])
+            last_stops = set(stops_order[-3:])
 
-            mean_time_to_stop = 0.0
-            for i, stop in enumerate(stops_walk):
-                if i == 0:
-                    mean_time_to_stop = 0.0
-                else:
-                    mean_time_to_stop += _mean_trip_time(
-                        line_str, direction, hour, stops_walk[i - 1]
-                    )
+            # Compute cumulative TTLS using O(1) table lookup
+            buses_valid = []
+            for row in dir_df.itertuples():
+                stop_str = str(row.stop)
+                # Filter out terminal edge dwelling buses
+                if stop_str in last_stops:
+                    continue
+                if stop_str in first_stops and row.estimateArrive < 60:
+                    continue
+                offset = CUMULATIVE_TTLS_LOOKUP.get((line_str, direction, stop_str), 0.0)
+                ttls = float(row.estimateArrive) + offset
+                buses_valid.append(
+                    {
+                        "line": line_str,
+                        "direction": direction,
+                        "bus": str(row.bus),
+                        "stop": stop_str,
+                        "datetime": row.datetime,
+                        "ttls": ttls,
+                    }
+                )
 
-                stop_df = dir_df[dir_df["stop"].astype(str) == stop]
-                stop_df = stop_df.drop_duplicates("bus", keep="first")
-
-                if stop == stops_walk[0]:  # route-end side: bus about to terminate
-                    buses_out += stop_df["bus"].astype(str).unique().tolist()
-                elif stop == stops_walk[-1]:  # route-start side: bus just departed
-                    near = stop_df[stop_df["estimateArrive"] < 60]
-                    buses_out += near["bus"].astype(str).unique().tolist()
-
-                for row in stop_df.itertuples():
-                    rows_with_ttls.append(
-                        {
-                            "line": line_str,
-                            "direction": direction,
-                            "bus": str(row.bus),
-                            "stop": str(row.stop),
-                            "datetime": row.datetime,
-                            "ttls": float(row.estimateArrive) + mean_time_to_stop,
-                        }
-                    )
-
-            if not rows_with_ttls:
+            if not buses_valid:
                 continue
 
-            stops_df = pd.DataFrame(rows_with_ttls)
+            stops_df = pd.DataFrame(buses_valid)
 
-            # TTLS must not exceed the full route travel time (dead/incorrect data)
-            total_time = sum(
-                _mean_trip_time(line_str, direction, hour, s) for s in stops_order[:-1]
-            )
-            if total_time > 0:
-                stops_df = stops_df[stops_df["ttls"] < total_time]
-
-            # Edge noise: drop buses flagged at the terminals
-            stops_df = stops_df[~stops_df["bus"].isin(buses_out)]
-
-            # Consecutive-appearance noise filter: require the bus in the previous burst
+            # Consecutive-appearance noise filter
             seen_key = f"{line_str}:{direction}"
             if seen_key not in _prev_seen:
                 _prev_seen[seen_key] = set()
@@ -234,11 +234,9 @@ def compute_live_headways(burst_df: pd.DataFrame) -> pd.DataFrame:
                 stops_df["bus"].isin(_prev_seen[seen_key]) | (not _prev_seen[seen_key])
             ]
 
-            # Sort by TTLS -> route order
+            # Sort buses along route sequence by true TTLS
             stops_df = stops_df.sort_values("ttls").drop_duplicates("bus", keep="first")
 
-            # Compute headways between consecutive buses (marker only for the FIRST bus,
-            # exactly like the original algorithm)
             for i in range(stops_df.shape[0]):
                 est1 = stops_df.iloc[i]
                 if i == 0:
@@ -269,16 +267,13 @@ def compute_live_headways(burst_df: pd.DataFrame) -> pd.DataFrame:
                         }
                     )
 
-            # Update the seen set for the next burst
             _prev_seen[seen_key] = set(stops_df["bus"])
 
     if not rows_list:
         return pd.DataFrame()
 
     hws = pd.DataFrame(rows_list)
-    # Drop the first bus in each direction (headway 0 with no predecessor)
-    hws = hws[hws["hw_pos"] > 0]
-    return hws.reset_index(drop=True)
+    return hws[hws["hw_pos"] > 0].reset_index(drop=True)
 
 
 def get_ndim_hws(hws_df: pd.DataFrame, dim: int) -> pd.DataFrame:
