@@ -1096,8 +1096,43 @@ def update_title_sliders(n_intervals, n_clicks, pathname):
     size_th = hyperparams[line]["size_th"]
 
     # And return all of them
+    switcher = html.Div(
+        className="flex-gap flex-wrap",
+        style={"marginTop": "0.5rem"},
+        children=[
+            html.Span(
+                "Madrid Lines:",
+                style={"color": "var(--text-muted)", "fontSize": "0.85rem", "fontWeight": "600"},
+            ),
+            dcc.Link(
+                "Line 1",
+                href="/realtime/madrid/1",
+                className=f"badge-pill {'primary' if line == '1' else 'warning'}",
+            ),
+            dcc.Link(
+                "Line 44",
+                href="/realtime/madrid/44",
+                className=f"badge-pill {'primary' if line == '44' else 'warning'}",
+            ),
+            dcc.Link(
+                "Line 82",
+                href="/realtime/madrid/82",
+                className=f"badge-pill {'primary' if line == '82' else 'warning'}",
+            ),
+            dcc.Link(
+                "Line 132",
+                href="/realtime/madrid/132",
+                className=f"badge-pill {'primary' if line == '132' else 'warning'}",
+            ),
+            dcc.Link(
+                "Line 133",
+                href="/realtime/madrid/133",
+                className=f"badge-pill {'primary' if line == '133' else 'warning'}",
+            ),
+        ],
+    )
     return [
-        [html.H1(f"Line {line} ({now.time()})", className="title is-3")],
+        [html.H1(f"Madrid Line {line} ({now.time()})", className="title is-3"), switcher],
         [
             html.Label(
                 [

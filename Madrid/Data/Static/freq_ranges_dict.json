@@ -1,1 +1,165 @@
-{"1": {"LA": [{"time_range": [7, 9], "freq_range": [14, 18]}, {"time_range": [9, 20], "freq_range": [11, 14]}, {"time_range": [20, 22], "freq_range": [13, 15]}, {"time_range": [22, 23], "freq_range": [14, 18]}], "LJ": [], "VV": [], "SA": [{"time_range": [7, 9], "freq_range": [17, 29]}, {"time_range": [9, 12], "freq_range": [15, 20]}, {"time_range": [12, 22], "freq_range": [13, 17]}, {"time_range": [22, 23], "freq_range": [15, 20]}], "FE": [{"time_range": [7, 8], "freq_range": [24, 36]}, {"time_range": [8, 12], "freq_range": [19, 25]}, {"time_range": [12, 22], "freq_range": [15, 19]}, {"time_range": [22, 23], "freq_range": [19, 25]}]}, "44": {"LA": [{"time_range": [6, 8], "freq_range": [8, 15]}, {"time_range": [8, 20], "freq_range": [8, 11]}, {"time_range": [20, 23], "freq_range": [11, 17]}], "LJ": [], "VV": [], "SA": [{"time_range": [6, 10], "freq_range": [15, 21]}, {"time_range": [10, 22], "freq_range": [11, 16]}, {"time_range": [22, 23], "freq_range": [12, 19]}], "FE": [{"time_range": [7, 11], "freq_range": [14, 21]}, {"time_range": [11, 23], "freq_range": [12, 19]}]}, "82": {"LA": [{"time_range": [6, 7], "freq_range": [8, 15]}, {"time_range": [7, 10], "freq_range": [5, 11]}, {"time_range": [10, 21], "freq_range": [6, 9]}, {"time_range": [21, 23], "freq_range": [10, 15]}], "LJ": [], "VV": [], "SA": [{"time_range": [6, 9], "freq_range": [17, 33]}, {"time_range": [9, 20], "freq_range": [16, 18]}, {"time_range": [20, 23], "freq_range": [16, 24]}], "FE": [{"time_range": [7, 8], "freq_range": [20, 25]}, {"time_range": [8, 22], "freq_range": [19, 21]}, {"time_range": [22, 23], "freq_range": [21, 30]}]}, "F": {"LA": [], "LJ": [{"time_range": [7, 14], "freq_range": [4, 7]}, {"time_range": [14, 20], "freq_range": [6, 8]}, {"time_range": [20, 22], "freq_range": [9, 18]}], "VV": [{"time_range": [7, 14], "freq_range": [5, 9]}, {"time_range": [14, 20], "freq_range": [10, 14]}, {"time_range": [20, 22], "freq_range": [13, 20]}], "SA": [], "FE": []}, "G": {"LA": [{"time_range": [7, 13], "freq_range": [3, 8]}, {"time_range": [13, 20], "freq_range": [6, 8]}, {"time_range": [20, 23], "freq_range": [6, 11]}], "LJ": [], "VV": [], "SA": [], "FE": []}, "U": {"LA": [], "LJ": [{"time_range": [7, 10], "freq_range": [7, 10]}, {"time_range": [10, 20], "freq_range": [10, 10]}, {"time_range": [20, 22], "freq_range": [10, 19]}], "VV": [{"time_range": [7, 14], "freq_range": [8, 10]}, {"time_range": [15, 21], "freq_range": [15, 16]}, {"time_range": [21, 22], "freq_range": [16, 19]}], "SA": [], "FE": []}, "132": {"LA": [{"time_range": [6, 8], "freq_range": [7, 13]}, {"time_range": [8, 20], "freq_range": [6, 8]}, {"time_range": [20, 23], "freq_range": [9, 19]}], "LJ": [], "VV": [], "SA": [{"time_range": [6, 10], "freq_range": [14, 20]}, {"time_range": [10, 21], "freq_range": [13, 15]}, {"time_range": [21, 23], "freq_range": [15, 27]}], "FE": [{"time_range": [7, 10], "freq_range": [22, 34]}, {"time_range": [10, 23], "freq_range": [18, 34]}]}, "133": {"LA": [{"time_range": [6, 20], "freq_range": [5, 8]}, {"time_range": [20, 22], "freq_range": [6, 10]}, {"time_range": [22, 23], "freq_range": [9, 13]}], "LJ": [], "VV": [], "SA": [{"time_range": [6, 9], "freq_range": [17, 26]}, {"time_range": [9, 12], "freq_range": [11, 21]}, {"time_range": [12, 21], "freq_range": [10, 13]}, {"time_range": [21, 23], "freq_range": [11, 21]}], "FE": [{"time_range": [7, 10], "freq_range": [20, 30]}, {"time_range": [10, 18], "freq_range": [11, 22]}, {"time_range": [18, 22], "freq_range": [10, 13]}, {"time_range": [22, 23], "freq_range": [11, 22]}]}, "N2": {"1": [{"time_range": [0, 5], "freq_range": [20, 20]}, {"time_range": [5, 7], "freq_range": [35, 35]}], "2": [{"time_range": [0, 2], "freq_range": [30, 30]}, {"time_range": [2, 5], "freq_range": [20, 20]}, {"time_range": [5, 7], "freq_range": [25, 25]}]}, "N6": {"1": [{"time_range": [0, 1], "freq_range": [20, 20]}, {"time_range": [1, 5], "freq_range": [15, 15]}, {"time_range": [5, 7], "freq_range": [20, 35]}], "2": [{"time_range": [0, 1], "freq_range": [25, 25]}, {"time_range": [1, 5], "freq_range": [15, 22]}, {"time_range": [5, 7], "freq_range": [20, 35]}]}}
+{
+  "1": {
+    "LA": [
+      { "time_range": [7, 9], "freq_range": [14, 18] },
+      { "time_range": [9, 20], "freq_range": [11, 14] },
+      { "time_range": [20, 22], "freq_range": [13, 15] },
+      { "time_range": [22, 23], "freq_range": [14, 18] }
+    ],
+    "LJ": [],
+    "VV": [],
+    "SA": [
+      { "time_range": [7, 9], "freq_range": [17, 29] },
+      { "time_range": [9, 12], "freq_range": [15, 20] },
+      { "time_range": [12, 22], "freq_range": [13, 17] },
+      { "time_range": [22, 23], "freq_range": [15, 20] }
+    ],
+    "FE": [
+      { "time_range": [7, 8], "freq_range": [24, 36] },
+      { "time_range": [8, 12], "freq_range": [19, 25] },
+      { "time_range": [12, 22], "freq_range": [15, 19] },
+      { "time_range": [22, 23], "freq_range": [19, 25] }
+    ]
+  },
+  "44": {
+    "LA": [
+      { "time_range": [6, 8], "freq_range": [8, 15] },
+      { "time_range": [8, 20], "freq_range": [8, 11] },
+      { "time_range": [20, 23], "freq_range": [11, 17] }
+    ],
+    "LJ": [],
+    "VV": [],
+    "SA": [
+      { "time_range": [6, 10], "freq_range": [15, 21] },
+      { "time_range": [10, 22], "freq_range": [11, 16] },
+      { "time_range": [22, 23], "freq_range": [12, 19] }
+    ],
+    "FE": [
+      { "time_range": [7, 11], "freq_range": [14, 21] },
+      { "time_range": [11, 23], "freq_range": [12, 19] }
+    ]
+  },
+  "82": {
+    "LA": [
+      { "time_range": [6, 7], "freq_range": [8, 15] },
+      { "time_range": [7, 10], "freq_range": [5, 11] },
+      { "time_range": [10, 21], "freq_range": [6, 9] },
+      { "time_range": [21, 23], "freq_range": [10, 15] }
+    ],
+    "LJ": [],
+    "VV": [],
+    "SA": [
+      { "time_range": [6, 9], "freq_range": [17, 33] },
+      { "time_range": [9, 20], "freq_range": [16, 18] },
+      { "time_range": [20, 23], "freq_range": [16, 24] }
+    ],
+    "FE": [
+      { "time_range": [7, 8], "freq_range": [20, 25] },
+      { "time_range": [8, 22], "freq_range": [19, 21] },
+      { "time_range": [22, 23], "freq_range": [21, 30] }
+    ]
+  },
+  "F": {
+    "LA": [],
+    "LJ": [
+      { "time_range": [7, 14], "freq_range": [4, 7] },
+      { "time_range": [14, 20], "freq_range": [6, 8] },
+      { "time_range": [20, 22], "freq_range": [9, 18] }
+    ],
+    "VV": [
+      { "time_range": [7, 14], "freq_range": [5, 9] },
+      { "time_range": [14, 20], "freq_range": [10, 14] },
+      { "time_range": [20, 22], "freq_range": [13, 20] }
+    ],
+    "SA": [],
+    "FE": []
+  },
+  "G": {
+    "LA": [
+      { "time_range": [7, 13], "freq_range": [3, 8] },
+      { "time_range": [13, 20], "freq_range": [6, 8] },
+      { "time_range": [20, 23], "freq_range": [6, 11] }
+    ],
+    "LJ": [],
+    "VV": [],
+    "SA": [],
+    "FE": []
+  },
+  "U": {
+    "LA": [],
+    "LJ": [
+      { "time_range": [7, 10], "freq_range": [7, 10] },
+      { "time_range": [10, 20], "freq_range": [10, 10] },
+      { "time_range": [20, 22], "freq_range": [10, 19] }
+    ],
+    "VV": [
+      { "time_range": [7, 14], "freq_range": [8, 10] },
+      { "time_range": [15, 21], "freq_range": [15, 16] },
+      { "time_range": [21, 22], "freq_range": [16, 19] }
+    ],
+    "SA": [],
+    "FE": []
+  },
+  "132": {
+    "LA": [
+      { "time_range": [6, 8], "freq_range": [7, 13] },
+      { "time_range": [8, 20], "freq_range": [6, 8] },
+      { "time_range": [20, 23], "freq_range": [9, 19] }
+    ],
+    "LJ": [],
+    "VV": [],
+    "SA": [
+      { "time_range": [6, 10], "freq_range": [14, 20] },
+      { "time_range": [10, 21], "freq_range": [13, 15] },
+      { "time_range": [21, 23], "freq_range": [15, 27] }
+    ],
+    "FE": [
+      { "time_range": [7, 10], "freq_range": [22, 34] },
+      { "time_range": [10, 23], "freq_range": [18, 34] }
+    ]
+  },
+  "133": {
+    "LA": [
+      { "time_range": [6, 20], "freq_range": [5, 8] },
+      { "time_range": [20, 22], "freq_range": [6, 10] },
+      { "time_range": [22, 23], "freq_range": [9, 13] }
+    ],
+    "LJ": [],
+    "VV": [],
+    "SA": [
+      { "time_range": [6, 9], "freq_range": [17, 26] },
+      { "time_range": [9, 12], "freq_range": [11, 21] },
+      { "time_range": [12, 21], "freq_range": [10, 13] },
+      { "time_range": [21, 23], "freq_range": [11, 21] }
+    ],
+    "FE": [
+      { "time_range": [7, 10], "freq_range": [20, 30] },
+      { "time_range": [10, 18], "freq_range": [11, 22] },
+      { "time_range": [18, 22], "freq_range": [10, 13] },
+      { "time_range": [22, 23], "freq_range": [11, 22] }
+    ]
+  },
+  "N2": {
+    "1": [
+      { "time_range": [0, 5], "freq_range": [20, 20] },
+      { "time_range": [5, 7], "freq_range": [35, 35] }
+    ],
+    "2": [
+      { "time_range": [0, 2], "freq_range": [30, 30] },
+      { "time_range": [2, 5], "freq_range": [20, 20] },
+      { "time_range": [5, 7], "freq_range": [25, 25] }
+    ]
+  },
+  "N6": {
+    "1": [
+      { "time_range": [0, 1], "freq_range": [20, 20] },
+      { "time_range": [1, 5], "freq_range": [15, 15] },
+      { "time_range": [5, 7], "freq_range": [20, 35] }
+    ],
+    "2": [
+      { "time_range": [0, 1], "freq_range": [25, 25] },
+      { "time_range": [1, 5], "freq_range": [15, 22] },
+      { "time_range": [5, 7], "freq_range": [20, 35] }
+    ]
+  }
+}

@@ -873,8 +873,28 @@ def update_title_sliders(n_intervals, n_clicks, pathname):
     size_th = hyperparams[line]["size_th"]
 
     # And return all of them
+    switcher = html.Div(
+        className="flex-gap flex-wrap",
+        style={"marginTop": "0.5rem"},
+        children=[
+            html.Span(
+                "London Lines:",
+                style={"color": "var(--text-muted)", "fontSize": "0.85rem", "fontWeight": "600"},
+            ),
+            dcc.Link(
+                "Line 25 (Active Data)",
+                href="/realtime/london/25",
+                className=f"badge-pill {'primary' if line == '25' else 'warning'}",
+            ),
+            dcc.Link(
+                "Line 18",
+                href="/realtime/london/18",
+                className=f"badge-pill {'primary' if line == '18' else 'warning'}",
+            ),
+        ],
+    )
     return [
-        [html.H1(f"Line {line} ({now.time()})", className="title is-3")],
+        [html.H1(f"London Line {line} ({now.time()})", className="title is-3"), switcher],
         [
             html.Label(
                 [

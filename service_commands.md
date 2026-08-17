@@ -10,7 +10,6 @@ vim /etc/systemd/system/docker.emt-buses.service
 
 After modifying this file, `systemctl daemon-reload` should be called in order to notify systemd about the changes. Then, we can restart the service with:
 
-
 ```bash
 systemctl restart docker.emt-buses.service
 ```

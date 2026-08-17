@@ -15,7 +15,7 @@
 
 This repository contains the official implementation and research codebase for the publication:
 
-> **A. Jarabo-Peñas, P. J. Zufiria and C. García-Mauriño**, *"Bus Headways Analysis for Anomaly Detection,"* in **IEEE Transactions on Intelligent Transportation Systems**, vol. 23, no. 10, pp. 18975-18988, Oct. 2022.
+> **A. Jarabo-Peñas, P. J. Zufiria and C. García-Mauriño**, _"Bus Headways Analysis for Anomaly Detection,"_ in **IEEE Transactions on Intelligent Transportation Systems**, vol. 23, no. 10, pp. 18975-18988, Oct. 2022.
 > **DOI:** [10.1109/TITS.2022.3155180](https://doi.org/10.1109/TITS.2022.3155180)
 
 ---
@@ -45,6 +45,7 @@ This repository contains the official implementation and research codebase for t
 Maintaining regular headways (the time interval between consecutive transit vehicles) is fundamental to operating high-quality urban bus systems. Headway irregularities lead to bus bunching, increased passenger wait times, and degraded service reliability.
 
 This project delivers an end-to-end data processing, statistical modeling, and real-time monitoring platform for public bus networks in **Madrid (EMT)** and **London (TfL)**. Using live telemetry and arrival time data from municipal transport APIs, the system:
+
 1. Models the statistical distribution and spatiotemporal evolution of headways across line stops.
 2. Derives an unsupervised **Quality of Service (QoS)** index to quantify route performance.
 3. Automatically detects headway anomalies (bunching, excessive gaps, missing vehicles) in real time.
@@ -54,11 +55,11 @@ This project delivers an end-to-end data processing, statistical modeling, and r
 
 ## Key Technical Highlights
 
-* **Multi-City Real-Time Ingestion**: Automated collectors interfacing with Madrid EMT MobilityLabs API and London Transport for London (TfL) Unified API.
-* **Empirical & Parametric Headway Characterization**: Comprehensive statistical modeling of headways and inter-stop travel times across different times of day, line typologies, and stop sequences.
-* **Online Unsupervised Anomaly Detection**: Statistical anomaly detection scheme that dynamically flags irregular headway deviations without requiring labeled historical training sets.
-* **QoS Formulation**: Quantitative metric assessing deviation from scheduled vs. actual headway regularity.
-* **Interactive Dash/Flask Web UI**: Responsive multi-page web application featuring live route topology maps, headway timeline gauges, and anomaly alerts.
+- **Multi-City Real-Time Ingestion**: Automated collectors interfacing with Madrid EMT MobilityLabs API and London Transport for London (TfL) Unified API.
+- **Empirical & Parametric Headway Characterization**: Comprehensive statistical modeling of headways and inter-stop travel times across different times of day, line typologies, and stop sequences.
+- **Online Unsupervised Anomaly Detection**: Statistical anomaly detection scheme that dynamically flags irregular headway deviations without requiring labeled historical training sets.
+- **QoS Formulation**: Quantitative metric assessing deviation from scheduled vs. actual headway regularity.
+- **Interactive Dash/Flask Web UI**: Responsive multi-page web application featuring live route topology maps, headway timeline gauges, and anomaly alerts.
 
 ---
 
@@ -104,6 +105,7 @@ This project delivers an end-to-end data processing, statistical modeling, and r
 ## Web Dashboard
 
 The web dashboard is built using Dash, Flask, Plotly, and Bulma CSS. It provides:
+
 - **Home View**: System overview, methodology summary, and line selection.
 - **Madrid EMT Real-Time**: Live headway tracking and anomaly status across selected Madrid lines (Lines 1, 44, 82, 132, 133, F, G).
 - **London TfL Real-Time**: Live headway metrics across monitored London bus corridors.
@@ -153,6 +155,7 @@ bash run_server.sh
 ### Pre-Processed Datasets
 
 Pre-processed datasets containing cleaned telemetry, stop arrival times, and computed headways are archived on Mega:
+
 - **Dataset Archive:** [Mega Storage Link](https://mega.nz/folder/QRIGnQRZ#7fJVQcapLkSp7jGGz0WZeQ)
 - **Files included:**
   - `buses_data_cleaned.csv`: Cleaned trajectory logs
@@ -165,6 +168,7 @@ Place the downloaded CSVs into the respective `Madrid/Data/Processed/` or `Londo
 ### Live API Configuration
 
 To enable real-time polling for Madrid EMT:
+
 1. Register for an API token at [Madrid EMT MobilityLabs](https://mobilitylabs.emtmadrid.es/).
 2. Create an `api_credentials.py` file in the project root:
    ```python

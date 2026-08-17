@@ -34,6 +34,7 @@ dev = [
     "ruff>=0.5.0",
     "pre-commit>=3.7.0",
     "pytest>=8.0.0",
+    "radon>=6.0.0",
 ]
 
 [tool.ruff]
@@ -49,6 +50,7 @@ select = [
     "B",    # flake8-bugbear
     "UP",   # pyupgrade
     "C4",   # flake8-comprehensions
+    "C901", # McCabe cyclomatic complexity
 ]
 ignore = [
     "E501", # Line too long (handled by formatter)
@@ -56,10 +58,15 @@ ignore = [
     "B905", # zip() without an explicit strict= parameter
 ]
 
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
 [tool.ruff.lint.per-file-ignores]
-"*.ipynb" = ["E402", "E722", "F821", "F811", "B018", "C408"]
+"*.ipynb" = ["E402", "E722", "F821", "F811", "B018", "C408", "C901"]
+"Madrid/Scripts/**" = ["C901", "E402"]
+"London/Scripts/**" = ["C901", "E402"]
 "Madrid/Scripts/CollectData/retrieve_data.py" = ["E402"]
-"Dashboard/apps/app_realtime_*.py" = ["E402"]
+"Dashboard/apps/app_realtime_*.py" = ["E402", "C901"]
 "tests/*" = ["E402"]
 
 [tool.ruff.lint.isort]

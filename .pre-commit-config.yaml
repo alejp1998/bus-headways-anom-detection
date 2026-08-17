@@ -1,5 +1,5 @@
 # Pre-commit configuration for bus-headways-anom-detection
-# See https://pre-commit.com for more information
+# Matching standards from dialogue-swarm
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -9,7 +9,7 @@ repos:
       - id: check-yaml
       - id: check-json
       - id: check-added-large-files
-        args: ['--maxkb=5000']
+        args: ["--maxkb=5000"]
       - id: check-merge-conflict
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -18,3 +18,20 @@ repos:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [css, yaml, json, markdown]
+        additional_dependencies:
+          - prettier@3.2.5
+
+  - repo: local
+    hooks:
+      - id: radon-complexity
+        name: Radon Cyclomatic Complexity Gate
+        entry: .venv/bin/python scripts/check_radon_complexity.py
+        language: system
+        pass_filenames: false
+        always_run: true
