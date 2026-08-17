@@ -20,9 +20,19 @@ from pathlib import Path
 import pandas as pd
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DB_DIR = ROOT_DIR / "Data"
+DB_DIR = ROOT_DIR / "Data" / "runtime"
 DB_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DB_DIR / "transit_telemetry.db"
+
+# Auto-migrate legacy DB if located at old root Data/ path
+_legacy_path = ROOT_DIR / "Data" / "transit_telemetry.db"
+if _legacy_path.exists() and not DB_PATH.exists():
+    try:
+        import shutil
+
+        shutil.move(str(_legacy_path), str(DB_PATH))
+    except Exception:
+        pass
 
 
 def get_db_connection() -> sqlite3.Connection:

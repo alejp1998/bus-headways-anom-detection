@@ -1,7 +1,8 @@
-__pycache__
+__pycache__/
+*.pyc
 api_credentials.py
-.ipynb_checkpoints
-apps/.ipynb_checkpoints
+.ipynb_checkpoints/
+apps/.ipynb_checkpoints/
 buses_data.csv
 buses_data_burst.csv
 Madrid/Data/Raw/*
@@ -9,7 +10,13 @@ London/Data/Raw/*
 Madrid/Data/Processed/*
 London/Data/Processed/*
 *.swp
-.cache
+.cache/
+.venv/
+Data/runtime/
+Data/runtime/*
 Data/*.db
 Data/*.db-wal
 Data/*.db-shm
+*.db
+*.db-wal
+*.db-shm
