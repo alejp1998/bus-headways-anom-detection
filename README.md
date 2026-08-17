@@ -15,7 +15,7 @@
 
 This repository contains the official implementation and research codebase for the publication:
 
-> **A. Jarabo-Peñas, P. J. Zufiria and C. García-Mauriño**, *"Bus Headways Analysis for Anomaly Detection,"* in **IEEE Transactions on Intelligent Transportation Systems**, vol. 23, no. 10, pp. 18975-18988, Oct. 2022.  
+> **A. Jarabo-Peñas, P. J. Zufiria and C. García-Mauriño**, *"Bus Headways Analysis for Anomaly Detection,"* in **IEEE Transactions on Intelligent Transportation Systems**, vol. 23, no. 10, pp. 18975-18988, Oct. 2022.
 > **DOI:** [10.1109/TITS.2022.3155180](https://doi.org/10.1109/TITS.2022.3155180)
 
 ---
@@ -210,8 +210,8 @@ If you use this codebase or methodology in your research, please cite our IEEE T
 ```bibtex
 @article{jarabo2022bus,
   author={Jarabo-Pe{\~n}as, Alejandro and Zufiria, Pedro J. and Garc{\'\i}a-Mauri{\~n}o, Carlos},
-  journal={IEEE Transactions on Intelligent Transportation Systems}, 
-  title={Bus Headways Analysis for Anomaly Detection}, 
+  journal={IEEE Transactions on Intelligent Transportation Systems},
+  title={Bus Headways Analysis for Anomaly Detection},
   year={2022},
   volume={23},
   number={10},

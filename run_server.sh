@@ -1,7 +1,7 @@
-#!/bin/bash 
+#!/bin/bash
 trap "kill 0" EXIT
 
-# MADRID 
+# MADRID
 # Enter Anomalies Detection Scripts Folder
 cd Madrid/Scripts/AnomaliesDetection
 
@@ -12,7 +12,7 @@ cd Madrid/Scripts/AnomaliesDetection
 python3 detect_anoms_hws.py &
 
 
-# LONDON 
+# LONDON
 # Enter Anomalies Detection Scripts Folder
 cd ../../../London/Scripts/AnomaliesDetection
 

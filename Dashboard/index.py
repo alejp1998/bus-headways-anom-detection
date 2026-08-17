@@ -1,126 +1,125 @@
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output
+import os
+import sys
+
+from dash import Input, Output, dcc, html
+
+# Ensure Dashboard directory is on python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app import app
-from apps import app_home, app_credits, app_realtime_madrid, app_realtime_london
+from apps import app_credits, app_home, app_realtime_london, app_realtime_madrid
 
-#APP INDEX STRING
-app.index_string = '''
+# Custom HTML index template with fonts & styling
+app.index_string = """
 <!DOCTYPE html>
-<html class = "">
+<html lang="en">
     <head>
         {%metas%}
-        <title>HEADWAYS</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.1/css/bulma.min.css" integrity="sha512-ZRv40llEogRmoWgZwnsqke3HNzJ0kiI0+pcMgiz2bxO6Ew1DVBtWjVn0qjrXdT3+u+pSN36gLgmJiiQ3cQtyzA==" crossorigin="anonymous" />
-        <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
-        <link href='https://fonts.googleapis.com/css?family=Megrim' rel='stylesheet'>
-            <style>
-                .logo1 {
-                    color : white;
-                    font-family: 'Megrim';
-                    font-size: 30px;
-                }
-                .navlogo {
-                    background: linear-gradient(to left, white, #840BBC);
-                }
-            </style>
+        <title>Bus Headways | Real-Time Anomaly Detection</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
         {%favicon%}
         {%css%}
     </head>
-    <body class="body">
-        <nav class="navbar navlogo" role="navigation" aria-label="main navigation">
-          <div class="navbar-brand">
-            <a class="navbar-item logo1" href="/home">HEADWAYS</a>
-            <div class="navbar-burger burger" data-target="navMenu">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-          <div id="navMenu" class="navbar-menu">
-            <div class="navbar-start">
-              <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link">MADRID EMT</a>
-                <div class="navbar-dropdown">
-                <a class="navbar-item" href="/realtime/madrid/1">Line 1</a>
-                <a class="navbar-item" href="/realtime/madrid/44">Line 44</a>
-                <a class="navbar-item" href="/realtime/madrid/82">Line 82</a>
-                <a class="navbar-item" href="/realtime/madrid/132">Line 132</a>
-                <a class="navbar-item" href="/realtime/madrid/133">Line 133</a>
+    <body>
+        <header class="app-navbar">
+            <div class="flex-between">
+                <div class="flex-gap">
+                    <a class="brand-logo" href="/home">
+                        <i class="fa-solid fa-bus-simple"></i>
+                        <span>HEADWAYS</span>
+                    </a>
+                    <span class="badge-pill primary" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">
+                        <i class="fa-solid fa-circle" style="font-size: 0.45rem; color: #10B981;"></i> LIVE MONITOR
+                    </span>
                 </div>
+                <nav class="flex-gap">
+                    <a class="nav-link" href="/home"><i class="fa-solid fa-house"></i> Overview</a>
+                    <div style="position: relative; display: inline-block;">
+                        <a class="nav-link" href="/realtime/madrid/1"><i class="fa-solid fa-location-dot"></i> Madrid EMT</a>
+                    </div>
+                    <div style="position: relative; display: inline-block;">
+                        <a class="nav-link" href="/realtime/london/18"><i class="fa-solid fa-location-dot"></i> London TfL</a>
+                    </div>
+                    <a class="nav-link" href="/credits"><i class="fa-solid fa-graduation-cap"></i> Research & Credits</a>
+                </nav>
             </div>
-            <div class="navbar-start">
-              <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link">LONDON</a>
-                <div class="navbar-dropdown">
-                <a class="navbar-item" href="/realtime/london/18">Line 18</a>
-                <a class="navbar-item" href="/realtime/london/25">Line 25</a>
-                </div>
-            </div>
-            <a class="navbar-item" href="/credits">Credits</a>
-            </div>
-          </div>
-        </nav>
-        <script type="text/javascript">
-            document.addEventListener('DOMContentLoaded', () => {
-            // Get all "navbar-burger" elements
-            const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
-            // Check if there are any navbar burgers
-            if ($navbarBurgers.length > 0) {
-                // Add a click event on each of them
-                $navbarBurgers.forEach( el => {
-                    el.addEventListener('click', () => {
-                        // Get the target from the "data-target" attribute
-                        const target = el.dataset.target;
-                        const $target = document.getElementById(target);
-                        // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
-                        el.classList.toggle('is-active');
-                        $target.classList.toggle('is-active');
-                    });
-                });
-            }
-            });
-        </script>
-        <section class="hero"
+        </header>
+
+        <main style="padding: 1.5rem 2rem; max-width: 1600px; margin: 0 auto;">
             {%app_entry%}
-        </section>
-        <footer height='0'>
-                {%config%}
-                {%scripts%}
-                {%renderer%}
+        </main>
+
+        <footer style="padding: 2rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border-color); margin-top: 3rem;">
+            <p>© 2026 Universidad Politécnica de Madrid (UPM) & Cátedra Cabify — IEEE Transactions on Intelligent Transportation Systems</p>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
         </footer>
     </body>
 </html>
-'''
+"""
 
-#APP LAYOUT DIV
-app.layout = html.Div([
-    dcc.Location(id='url', refresh=False),
-    html.Div(id='page-content')
-])
+# App Layout Div
+app.layout = html.Div(
+    [
+        dcc.Location(id="url", refresh=False),
+        html.Div(id="page-content"),
+    ]
+)
 
-#CHANGE PAGE DEPENDING ON PATHNAME
-@app.callback(Output('page-content', 'children'),
-              [Input('url', 'pathname')])
+
+# Routing callback
+@app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def display_page(pathname):
-    try :
-        if (pathname == '/home') or (pathname == '/'):
+    try:
+        if pathname in ["/home", "/", None]:
             return app_home.layout
-        elif pathname[0:16] == '/realtime/madrid':
-            if pathname[17:] not in ['1','44','82','132','133'] :
-                return html.H1('Line not available for real time analysis yet',className='title is-3')
+        elif pathname.startswith("/realtime/madrid"):
+            line = pathname.split("/")[-1] if len(pathname.split("/")) > 3 else ""
+            if line not in ["1", "44", "82", "132", "133", "F", "G"]:
+                return html.Div(
+                    className="modern-card",
+                    style={"textAlign": "center", "padding": "3rem"},
+                    children=[
+                        html.H2("Madrid Line Not Available", style={"color": "#F87171"}),
+                        html.P(f"Line '{line}' is not currently active in the real-time pipeline."),
+                        dcc.Link(
+                            "← Back to Madrid Line 1",
+                            href="/realtime/madrid/1",
+                            className="btn-primary-gradient",
+                            style={"marginTop": "1rem"},
+                        ),
+                    ],
+                )
             return app_realtime_madrid.layout
-        elif pathname[0:16] == '/realtime/london':
-            if pathname[17:] not in ['18','25'] :
-                return html.H1('Line not available for real time analysis yet',className='title is-3')
+        elif pathname.startswith("/realtime/london"):
+            line = pathname.split("/")[-1] if len(pathname.split("/")) > 3 else ""
+            if line not in ["18", "25"]:
+                return html.Div(
+                    className="modern-card",
+                    style={"textAlign": "center", "padding": "3rem"},
+                    children=[
+                        html.H2("London Line Not Available", style={"color": "#F87171"}),
+                        html.P(f"Line '{line}' is not currently active in the real-time pipeline."),
+                        dcc.Link(
+                            "← Back to London Line 18",
+                            href="/realtime/london/18",
+                            className="btn-primary-gradient",
+                            style={"marginTop": "1rem"},
+                        ),
+                    ],
+                )
             return app_realtime_london.layout
-        else:
+        elif pathname == "/credits":
             return app_credits.layout
-    except :
+        else:
+            return app_home.layout
+    except Exception:
         return app_home.layout
 
-#START THE SERVER
+
 server = app.server
-if __name__ == '__main__':
-    app.run_server(port=8050, host='0.0.0.0', debug=False)
+
+if __name__ == "__main__":
+    app.run(port=8050, host="0.0.0.0", debug=False)
