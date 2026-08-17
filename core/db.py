@@ -430,7 +430,7 @@ def get_latest_headways_df(city: str, line: str | None = None) -> pd.DataFrame:
         return pd.read_sql_query(query, conn, params=params)
 
 
-def get_series_df(city: str, line: str, dim: int = 1, limit: int = 60) -> pd.DataFrame:
+def get_series_df(city: str, line: str, dim: int | None = 1, limit: int = 60) -> pd.DataFrame:
     """Retrieve recent multi-dimensional headway time series."""
     query = """
         SELECT line, dim, m_dist, is_anomaly AS anom,
@@ -438,12 +438,17 @@ def get_series_df(city: str, line: str, dim: int = 1, limit: int = 60) -> pd.Dat
                hw12, hw23, hw34, hw45, hw56, hw67, hw78, hw89,
                created_at AS datetime
         FROM headways_series
-        WHERE city = ? AND line = ? AND dim = ?
-        ORDER BY created_at DESC
-        LIMIT ?
+        WHERE city = ? AND line = ?
     """
+    params: list = [city, str(line)]
+    if dim is not None:
+        query += " AND dim = ?"
+        params.append(int(dim))
+    query += "\n        ORDER BY created_at DESC\n        LIMIT ?"
+    params.append(limit)
+
     with db_session() as conn:
-        df = pd.read_sql_query(query, conn, params=[city, str(line), dim, limit])
+        df = pd.read_sql_query(query, conn, params=params)
         if not df.empty:
             return df.iloc[::-1].reset_index(drop=True)
         return df

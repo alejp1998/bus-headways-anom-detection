@@ -468,7 +468,7 @@ def _read_db(name, line):
     elif name == "hws_burst":
         df = db.get_latest_headways_df("London", str(line) if line else None)
     elif name == "series":
-        df = db.get_series_df("London", str(line) if line else "25", dim=1, limit=300)
+        df = db.get_series_df("London", str(line) if line else "25", dim=None, limit=60)
     elif name == "anomalies":
         df = db.get_anomalies_df("London", str(line) if line else "25", limit=100)
     else:
