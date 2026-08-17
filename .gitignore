@@ -10,3 +10,6 @@ Madrid/Data/Processed/*
 London/Data/Processed/*
 *.swp
 .cache
+Data/*.db
+Data/*.db-wal
+Data/*.db-shm
