@@ -6,7 +6,7 @@ from datetime import datetime as dt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from dash import Input, Output, dash_table, dcc, html, no_update
+from dash import Input, Output, dash_table, dcc, html
 from numpy import cos, pi, sin
 from scipy.stats.distributions import chi2
 
@@ -556,27 +556,43 @@ def _get_hour_range_and_model(line, dim):
     return None
 
 
-def _series_unchanged(graph_key: str, line: str) -> bool:
-    """Return True when no new series records arrived since the last build."""
+def _cached_figure(graph_key: str, line: str):
+    """Return the cached figure for (graph, line) or a sentinel when it needs rebuilding.
+
+    Returns (cached_figure, is_current):
+      - (fig, True)  -> reuse the cached figure, no rebuild needed
+      - (None, False)-> rebuild required
+    """
     try:
         from core import db
 
         ts = db.get_latest_timestamp("London", "headways_series")
         if ts is None:
-            return False
+            return None, False
         # Ignore future timestamps (clock skew / stale test data) - never freeze on them
         try:
             ts_dt = dt.fromisoformat(str(ts))
             if ts_dt > dt.now():
-                return False
+                return None, False
         except Exception:
             pass
-        if _LAST_SERIES_TS.get((graph_key, line)) == ts:
-            return True
-        _LAST_SERIES_TS[(graph_key, line)] = ts
-        return False
+        cached = _LAST_SERIES_TS.get((graph_key, line))
+        if cached and cached[0] == ts and cached[1] is not None:
+            return cached[1], True
+        return None, False
     except Exception:
-        return False
+        return None, False
+
+
+def _store_figure(graph_key: str, line: str, figure):
+    """Persist the freshly built figure together with its source timestamp."""
+    try:
+        from core import db
+
+        ts = db.get_latest_timestamp("London", "headways_series")
+        _LAST_SERIES_TS[(graph_key, line)] = (ts, figure)
+    except Exception:
+        pass
 
 
 def read_df(name, line=None):
@@ -1439,8 +1455,9 @@ def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
 )
 def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-    if _series_unchanged("ts1", line):
-        return no_update
+    cached = _cached_figure("ts1", line)
+    if cached[1]:
+        return [cached[0]]
 
     hover_buses = _parse_hover_buses(hoverData, line)
 
@@ -1480,6 +1497,7 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
 
     time_series_graph = build_time_series_graph(line_series, model, conf)
 
+    _store_figure("ts1", line, time_series_graph)
     time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 
@@ -1497,8 +1515,9 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
 )
 def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-    if _series_unchanged("ts2", line):
-        return no_update
+    cached = _cached_figure("ts2", line)
+    if cached[1]:
+        return [cached[0]]
 
     hover_buses = _parse_hover_buses(hoverData, line)
 
@@ -1532,6 +1551,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
 
     time_series_graph = build_2d_time_series_graph(line_series, model, conf)
 
+    _store_figure("ts1", line, time_series_graph)
     time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 
@@ -1549,8 +1569,9 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
 )
 def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-    if _series_unchanged("md", line):
-        return no_update
+    cached = _cached_figure("md", line)
+    if cached[1]:
+        return [cached[0]]
 
     hover_buses = _parse_hover_buses(hoverData, line)
 
@@ -1594,6 +1615,7 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"
     # Create mh dist graph
     m_dist_graph = build_m_dist_graph(line_series, line)
 
+    _store_figure("md", line, m_dist_graph)
     m_dist_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [m_dist_graph]
 
