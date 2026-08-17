@@ -1,5 +1,7 @@
 """Unit tests for high-performance SQLite database engine (core/db.py)."""
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -7,8 +9,10 @@ from core import db
 
 
 @pytest.fixture(autouse=True)
-def setup_database():
-    """Ensure clean test database."""
+def setup_database(tmp_path):
+    """Isolate tests from the production database via a temporary SQLite file."""
+    db.DB_DIR = Path(tmp_path)
+    db.DB_PATH = db.DB_DIR / "test_telemetry.db"
     db.init_db()
 
 
