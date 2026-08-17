@@ -81,6 +81,17 @@ def collect_live_burst(session: requests.Session) -> pd.DataFrame:
         return pd.DataFrame()
 
     now_iso = dt.datetime.now().isoformat()
+    # Load stop coordinates map for accurate live vehicle mapping
+    stops_coords = {}
+    stops_file = STATIC_DIR / "stops.csv"
+    if stops_file.exists():
+        try:
+            _st = pd.read_csv(stops_file)
+            for _, row in _st.iterrows():
+                stops_coords[str(row["id"])] = (float(row["lat"]), float(row["lon"]))
+        except Exception:
+            pass
+
     rows = []
     for r in records:
         line_name = str(r.get("lineName", "")).strip()
@@ -91,6 +102,8 @@ def collect_live_burst(session: requests.Session) -> pd.DataFrame:
 
             # Determine direction: 1 = outbound, 2 = inbound
             dir_val = 1 if r.get("direction") == "outbound" else 2
+            naptan = str(r.get("naptanId", "")).strip()
+            lat, lon = stops_coords.get(naptan, (51.5074, -0.1278))
 
             rows.append(
                 {
@@ -100,12 +113,11 @@ def collect_live_burst(session: requests.Session) -> pd.DataFrame:
                     "vehicleId": vid,
                     "destination": str(r.get("destinationName", "")).strip(),
                     "direction": dir_val,
-                    "stop": str(r.get("stationName") or r.get("naptanId", "")).strip(),
+                    "stop": str(r.get("stationName") or naptan).strip(),
                     "estimateArrive": int(r.get("timeToStation", 0)),
-                    "DistanceBus": int(r.get("timeToStation", 0))
-                    * 5.0,  # Estimated travel distance
-                    "lat": float(r.get("lat", 51.5074)),
-                    "lon": float(r.get("lon", -0.1278)),
+                    "DistanceBus": int(r.get("timeToStation", 0)) * 5.0,
+                    "lat": lat,
+                    "lon": lon,
                 }
             )
 

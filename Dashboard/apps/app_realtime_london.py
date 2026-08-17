@@ -2,7 +2,6 @@ import json
 import math
 import time
 from datetime import datetime as dt
-from datetime import timedelta
 
 import numpy as np
 import pandas as pd
@@ -528,20 +527,33 @@ def _parse_hover_buses(hoverData, line):
 
 
 def _get_hour_range_and_model(line, dim):
-    """Resolve the current day-type/hour-window model baseline (None when outside service hours)."""
-    now = dt.now() - timedelta(hours=1)
+    """Resolve the current day-type/hour-window model baseline (always active 24/7 with nearest fallback)."""
+    now = dt.now()
     day_type = "LA" if now.weekday() <= 4 else ("SA" if now.weekday() == 5 else "FE")
-    hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
-    for h_range in hour_ranges:
-        if h_range[0] <= now.hour < h_range[1]:
-            hour_range = f"{h_range[0]}-{h_range[1]}"
-            break
+    hour = now.hour
+    if hour < 7:
+        hour_range = "7-9"
+    elif hour >= 23:
+        hour_range = "21-23"
     else:
-        return None
+        hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
+        for h_range in hour_ranges:
+            if h_range[0] <= hour < h_range[1]:
+                hour_range = f"{h_range[0]}-{h_range[1]}"
+                break
+        else:
+            hour_range = "21-23"
+
     try:
-        return models_params_dict[line][day_type][hour_range][str(dim)]
+        models = models_params_dict.get(str(line), {}).get(day_type, {})
+        if hour_range in models and str(dim) in models[hour_range]:
+            return models[hour_range][str(dim)]
+        for hr in ["21-23", "19-21", "17-19", "7-9"]:
+            if hr in models and str(dim) in models[hr]:
+                return models[hr][str(dim)]
     except Exception:
-        return None
+        pass
+    return None
 
 
 def _series_unchanged(graph_key: str, line: str) -> bool:
@@ -627,6 +639,113 @@ def ellipse(mus, cov_matrix, conf):
     x = xp + mus[0]
     y = yp + mus[1]
     return x, y
+
+
+mapbox_access_token = os.environ.get("MAPBOX_ACCESS_TOKEN", "")
+mapbox_style = "streets" if mapbox_access_token else "carto-darkmatter"
+mapbox_light_style = "light" if mapbox_access_token else "carto-positron"
+
+zooms = {"18": 12.0, "24": 12.6, "25": 11.8, "73": 12.2}
+
+
+def calc_map_params(line="25"):
+    """Compute stable map center coordinates and zoom level for the route."""
+    shapes = line_shapes.loc[line_shapes.line_sn.astype(str) == str(line)]
+    if not shapes.empty:
+        center_x = float(shapes.lon.mean())
+        center_y = float(shapes.lat.mean())
+    else:
+        center_x, center_y = -0.1278, 51.5074
+    zoom = float(zooms.get(str(line), 12.2))
+    return center_x, center_y, zoom
+
+
+def build_map(line_df, theme="dark", line="25"):
+    """Build the interactive MapLibre/Scattermap route diagram with live buses."""
+    dark = theme == "dark"
+    map_style = mapbox_style if dark else mapbox_light_style
+    center_x, center_y, zoom = calc_map_params(line)
+
+    new_map = go.Figure()
+    new_map.update_layout(
+        template="plotly_dark" if dark else "plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin={"r": 0, "t": 0, "b": 0, "l": 0},
+        showlegend=True,
+        legend={
+            "x": 0.02,
+            "y": 0.98,
+            "bgcolor": "rgba(15,23,42,0.75)" if dark else "rgba(255,255,255,0.85)",
+        },
+        uirevision=str(line),
+        map={
+            "bearing": 0,
+            "center": {"lat": center_y, "lon": center_x},
+            "pitch": 0,
+            "zoom": zoom,
+            "style": map_style,
+            "uirevision": str(line),
+        },
+    )
+
+    # Add stops
+    st_line = (
+        stops.loc[stops["line"].astype(str) == str(line)] if "line" in stops.columns else stops
+    )
+    if not st_line.empty:
+        stop_color = "#64748B" if dark else "#94A3B8"
+        new_map.add_trace(
+            go.Scattermap(
+                lat=st_line.lat,
+                lon=st_line.lon,
+                mode="markers",
+                marker=go.scattermap.Marker(size=8, color=stop_color, opacity=0.55),
+                text=st_line.name if "name" in st_line.columns else st_line.id,
+                hoverinfo="text",
+                name="Stops",
+            )
+        )
+
+    # Add route shape lines (direction 1 = #6366F1, direction 2 = #F59E0B)
+    for dir_val, color in [(1, "#6366F1"), (2, "#F59E0B")]:
+        l_shape = line_shapes.loc[
+            (line_shapes.line_sn.astype(str) == str(line)) & (line_shapes.direction == dir_val)
+        ]
+        if not l_shape.empty:
+            l_shape = l_shape.sort_values("sequence")
+            new_map.add_trace(
+                go.Scattermap(
+                    lat=l_shape.lat,
+                    lon=l_shape.lon,
+                    mode="lines",
+                    line={"width": 3, "color": color},
+                    text=f"Route {line} (Dir {dir_val})",
+                    hoverinfo="skip",
+                    opacity=0.9,
+                    name=f"Dir {dir_val}",
+                )
+            )
+
+    # Add live bus markers
+    if not line_df.empty:
+        for bus in line_df.itertuples():
+            color = colors2[str_to_int(bus.bus) % len(colors2)]
+            new_map.add_trace(
+                go.Scattermap(
+                    lat=[bus.lat],
+                    lon=[bus.lon],
+                    mode="markers",
+                    marker=go.scattermap.Marker(size=16, color=color, opacity=0.95),
+                    text=[
+                        f"<b>Bus {bus.bus}</b><br>ETA: {bus.estimateArrive}s<br>Stop: {bus.stop}"
+                    ],
+                    hoverinfo="text",
+                    name=f"Bus {bus.bus}",
+                )
+            )
+
+    return new_map
 
 
 def build_graph(line_hws):
@@ -1193,6 +1312,25 @@ def _empty_figure(message):
 
 
 # CALLBACKS
+
+
+# CALLBACK 0a - Live Map Positions
+@app.callback(
+    [Output("map" + location, "figure")],
+    [
+        Input("interval-component" + location, "n_intervals"),
+        Input("update-button" + location, "n_clicks"),
+        Input("url", "pathname"),
+        Input("theme-store", "data"),
+    ],
+)
+def update_buses_position(n_intervals, n_clicks, pathname, theme="dark"):
+    line = pathname.split("/")[-1] if pathname else "25"
+    burst = read_df("burst", line=line)
+    line_burst = (
+        burst.loc[burst.line.astype(str) == str(line)] if not burst.empty else pd.DataFrame()
+    )
+    return [build_map(line_burst, theme, line=line)]
 
 
 # CALLBACK 0b - Title

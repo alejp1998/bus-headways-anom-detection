@@ -2,7 +2,6 @@ import json
 import math
 import time
 from datetime import datetime as dt
-from datetime import timedelta
 
 import numpy as np
 import pandas as pd
@@ -553,20 +552,33 @@ def _parse_hover_buses(hoverData, line):
 
 
 def _get_hour_range_and_model(line, dim):
-    """Resolve the current day-type/hour-window model baseline (None when outside service hours)."""
-    now = dt.now() - timedelta(hours=1)
+    """Resolve the current day-type/hour-window model baseline (always active 24/7 with nearest fallback)."""
+    now = dt.now()
     day_type = "LA" if now.weekday() <= 4 else ("SA" if now.weekday() == 5 else "FE")
-    hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
-    for h_range in hour_ranges:
-        if h_range[0] <= now.hour < h_range[1]:
-            hour_range = f"{h_range[0]}-{h_range[1]}"
-            break
+    hour = now.hour
+    if hour < 7:
+        hour_range = "7-9"
+    elif hour >= 23:
+        hour_range = "21-23"
     else:
-        return None
+        hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
+        for h_range in hour_ranges:
+            if h_range[0] <= hour < h_range[1]:
+                hour_range = f"{h_range[0]}-{h_range[1]}"
+                break
+        else:
+            hour_range = "21-23"
+
     try:
-        return models_params_dict[line][day_type][hour_range][str(dim)]
+        models = models_params_dict.get(str(line), {}).get(day_type, {})
+        if hour_range in models and str(dim) in models[hour_range]:
+            return models[hour_range][str(dim)]
+        for hr in ["21-23", "19-21", "17-19", "7-9"]:
+            if hr in models and str(dim) in models[hr]:
+                return models[hr][str(dim)]
     except Exception:
-        return None
+        pass
+    return None
 
 
 def _series_unchanged(graph_key: str, line: str) -> bool:
