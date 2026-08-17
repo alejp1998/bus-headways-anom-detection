@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app import app
 from apps import app_credits, app_home, app_realtime_london, app_realtime_madrid
 
-# Custom HTML index template with fonts & styling
+# Custom HTML index template with theme script & typography
 app.index_string = """
 <!DOCTYPE html>
 <html lang="en">
@@ -29,20 +29,29 @@ app.index_string = """
                         <i class="fa-solid fa-bus-simple"></i>
                         <span>HEADWAYS</span>
                     </a>
-                    <span class="badge-pill primary" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">
-                        <i class="fa-solid fa-circle" style="font-size: 0.45rem; color: #10B981;"></i> LIVE MONITOR
+                    <span class="badge-pill primary" style="font-size: 0.72rem; padding: 0.25rem 0.6rem;">
+                        <span class="pulse-indicator"></span> LIVE
                     </span>
                 </div>
-                <nav class="flex-gap">
-                    <a class="nav-link" href="/home"><i class="fa-solid fa-house"></i> Overview</a>
-                    <div style="position: relative; display: inline-block;">
+                <div class="flex-gap">
+                    <nav class="flex-gap">
+                        <a class="nav-link" href="/home"><i class="fa-solid fa-house"></i> Overview</a>
                         <a class="nav-link" href="/realtime/madrid/1"><i class="fa-solid fa-location-dot"></i> Madrid EMT</a>
-                    </div>
-                    <div style="position: relative; display: inline-block;">
                         <a class="nav-link" href="/realtime/london/25"><i class="fa-solid fa-location-dot"></i> London TfL</a>
+                        <a class="nav-link" href="/credits"><i class="fa-solid fa-graduation-cap"></i> Credits</a>
+                    </nav>
+                    <div class="theme-switch-container">
+                        <button class="theme-btn" data-set-theme="light" onclick="setDashboardTheme('light')" title="Light Theme">
+                            <i class="fa-solid fa-sun"></i>
+                        </button>
+                        <button class="theme-btn" data-set-theme="dark" onclick="setDashboardTheme('dark')" title="Dark Theme">
+                            <i class="fa-solid fa-moon"></i>
+                        </button>
+                        <button class="theme-btn active" data-set-theme="system" onclick="setDashboardTheme('system')" title="System Theme">
+                            <i class="fa-solid fa-desktop"></i> Auto
+                        </button>
                     </div>
-                    <a class="nav-link" href="/credits"><i class="fa-solid fa-graduation-cap"></i> Research & Credits</a>
-                </nav>
+                </div>
             </div>
         </header>
 
@@ -64,8 +73,22 @@ app.index_string = """
 app.layout = html.Div(
     [
         dcc.Location(id="url", refresh=False),
+        dcc.Store(id="theme-store", storage_type="memory"),
+        dcc.Interval(id="theme-poll", interval=800, n_intervals=0),
         html.Div(id="page-content"),
     ]
+)
+
+
+# Clientside callback: sync the active theme from the DOM into the Dash store
+app.clientside_callback(
+    """
+    function(n) {
+        return document.documentElement.getAttribute('data-theme') || 'dark';
+    }
+    """,
+    Output("theme-store", "data"),
+    Input("theme-poll", "n_intervals"),
 )
 
 
@@ -82,7 +105,9 @@ def display_page(pathname):
                     className="modern-card",
                     style={"textAlign": "center", "padding": "3rem"},
                     children=[
-                        html.H2("Madrid Line Not Available", style={"color": "#F87171"}),
+                        html.H2(
+                            "Madrid Line Not Available", style={"color": "var(--danger-color)"}
+                        ),
                         html.P(f"Line '{line}' is not currently active in the real-time pipeline."),
                         dcc.Link(
                             "← Back to Madrid Line 1",
@@ -100,11 +125,13 @@ def display_page(pathname):
                     className="modern-card",
                     style={"textAlign": "center", "padding": "3rem"},
                     children=[
-                        html.H2("London Line Not Available", style={"color": "#F87171"}),
+                        html.H2(
+                            "London Line Not Available", style={"color": "var(--danger-color)"}
+                        ),
                         html.P(f"Line '{line}' is not currently active in the real-time pipeline."),
                         dcc.Link(
-                            "← Back to London Line 18",
-                            href="/realtime/london/18",
+                            "← Back to London Line 25",
+                            href="/realtime/london/25",
                             className="btn-primary-gradient",
                             style={"marginTop": "1rem"},
                         ),

@@ -10,7 +10,7 @@ from dash import Input, Output, dash_table, dcc, html
 from numpy import cos, pi, sin
 from scipy.stats.distributions import chi2
 
-from app import app
+from app import app, theme_layout
 
 pd.options.mode.chained_assignment = None  # suppress chained assignment warnings
 
@@ -974,9 +974,10 @@ def update_hyperparams(conf, size_th, pathname):
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
+        Input("theme-store", "data"),
     ],
 )
-def update_flat_hws(n_intervals, n_clicks, pathname):
+def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
     line = pathname[17:]
 
     hws_burst = read_df("hws_burst")
@@ -998,6 +999,8 @@ def update_flat_hws(n_intervals, n_clicks, pathname):
     )
 
     # And return all of them
+    graph.figure.update_layout(**theme_layout(theme))
+
     return [graph]
 
 
@@ -1008,10 +1011,11 @@ def update_flat_hws(n_intervals, n_clicks, pathname):
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
+        Input("theme-store", "data"),
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData):
+def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     line = pathname[17:]
 
     try:
@@ -1106,6 +1110,8 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData):
     # graph = dcc.Loading(type='cube',children = [graph])
 
     # And return all of them
+    graph.figure.update_layout(**theme_layout(theme))
+
     return [graph]
 
 
@@ -1116,10 +1122,11 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData):
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
+        Input("theme-store", "data"),
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData):
+def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     line = pathname[17:]
 
     try:
@@ -1214,6 +1221,8 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData):
     # graph = dcc.Loading(type='cube',children = [graph])
 
     # And return all of them
+    graph.figure.update_layout(**theme_layout(theme))
+
     return [graph]
 
 
@@ -1224,10 +1233,11 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData):
         Input("interval-component" + location, "n_intervals"),
         Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
+        Input("theme-store", "data"),
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_mdist_series(n_intervals, n_clicks, pathname, hoverData):
+def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     line = pathname[17:]
 
     try:
@@ -1303,6 +1313,8 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData):
     # graph = dcc.Loading(type='cube',children = [graph])
 
     # And return all of them
+    graph.figure.update_layout(**theme_layout(theme))
+
     return [graph]
 
 

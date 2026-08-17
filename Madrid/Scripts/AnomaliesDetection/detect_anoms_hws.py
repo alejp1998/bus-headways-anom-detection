@@ -7,7 +7,6 @@ from datetime import timedelta
 
 import numpy as np
 import pandas as pd
-from scipy.spatial.distance import mahalanobis
 from scipy.stats.distributions import chi2
 
 # Lines to iterate over
@@ -59,38 +58,41 @@ hw_names_all = ["hw" + str(i) + str(i + 1) for i in range(1, 8 + 1)]
 
 
 def clean_data(df):
-    def check_conditions(row):
-        # Direction
-        direction = "1" if row.destination == lines_dict[row.line]["destinations"][1] else "2"
+    """Vectorized validation and cleaning of raw bus telemetry records."""
+    if df.empty:
+        return df
 
-        # Line destination stop coherence condition
-        line_dest_stop_cond = False
-        if row.line in lines_dict.keys():
-            if row.destination in lines_dict[row.line]["destinations"]:
-                if str(row.stop) in lines_dict[row.line][direction]["stops"]:
-                    line_dest_stop_cond = True
+    valid_mask = pd.Series(False, index=df.index)
+    lines_series = df["line"].astype(str)
 
-        # DistanceBus values lower than the line length or negative
-        dist_cond = (row.DistanceBus >= 0) and (
-            row.DistanceBus < int(lines_dict[row.line][direction]["length"])
-        )
+    for line, ldata in lines_dict.items():
+        line_mask = lines_series == line
+        if not line_mask.any():
+            continue
+        destinations = ldata.get("destinations", [])
+        if len(destinations) < 2:
+            continue
+        dest2, dest1 = destinations[0], destinations[1]
 
-        # estimateArrive values lower than the time it takes to go through the line at an speed
-        # of 2m/s, instantaneous speed lower than 120 km/h and positive values and time remaining lower than 2 hours
-        eta_cond = (
-            (row.estimateArrive > 0)
-            and (row.estimateArrive < (int(lines_dict[row.line][direction]["length"]) / 2))
-            and ((3.6 * row.DistanceBus / row.estimateArrive) < 120) & (row.estimateArrive < 7200)
-        )
+        for d_key, dest_val in [("1", dest1), ("2", dest2)]:
+            dir_mask = line_mask & (df["destination"] == dest_val)
+            if not dir_mask.any():
+                continue
+            stops_set = {int(s) for s in ldata.get(d_key, {}).get("stops", [])}
+            line_len = int(ldata.get(d_key, {}).get("length", 0))
 
-        return line_dest_stop_cond and dist_cond and eta_cond
+            sub_df = df.loc[dir_mask]
+            stop_cond = sub_df["stop"].astype(int).isin(stops_set)
+            dist = sub_df["DistanceBus"].astype(float)
+            eta = sub_df["estimateArrive"].astype(float)
 
-    # Check conditions in df
-    mask = df.apply(check_conditions, axis=1)
-    # Select rows that match the conditions
-    df = df.loc[mask].reset_index(drop=True)
-    # Return cleaned DataFrame
-    return df
+            dist_cond = (dist >= 0) & (dist < line_len)
+            speed_cond = (3.6 * dist / np.maximum(eta, 1e-5)) < 120
+            eta_cond = (eta > 0) & (eta < (line_len / 2)) & speed_cond & (eta < 7200)
+
+            valid_mask.loc[dir_mask] = stop_cond & dist_cond & eta_cond
+
+    return df.loc[valid_mask].reset_index(drop=True)
 
 
 # For every burst of data:
@@ -124,12 +126,8 @@ def get_headways(int_df, day_type, hour_range, ap_order_dict, now):
     # Assign destination values
     dest2, dest1 = lines_dict[line]["destinations"]
 
-    def add_direction(row):
-        direction = 1 if row.destination == dest1 else 2
-        return direction
-
-    # Add direction field to df
-    int_df["direction"] = int_df.apply(add_direction, axis=1)
+    # Add direction field to df (vectorized)
+    int_df["direction"] = np.where(int_df["destination"] == dest1, 1, 2)
 
     # Process mean times between stops
     tims_bt_stops = times_bt_stops.loc[
@@ -543,43 +541,29 @@ def process_hws_ndim_mh_dist(lines, day_type, hour_range, burst_df, ap_order_dic
             # Get Mahalanobis distance squared from which a certain percentage of the data is out
             m_th = math.sqrt(chi2.ppf(conf, df=dim))
 
-            # Inverse of cov matrix
-            iv = None
-            if dim > 1:
-                iv = np.linalg.inv(cov_matrix)
+            # Vectorized Mahalanobis distance calculation
+            X = window_df[hw_names].to_numpy(dtype=float)
+            if dim == 1:
+                std = float(cov_matrix)
+                m_dist = np.abs(X[:, 0] - float(mean)) / (std if std != 0 else 1.0)
+            else:
+                iv = np.linalg.pinv(cov_matrix)
+                diff = X - mean
+                m_dist = np.sqrt(np.maximum(0.0, np.sum((diff @ iv) * diff, axis=1)))
 
-            def calc_m_dist(
-                row, hw_names=hw_names, dim=dim, mean=mean, cov_matrix=cov_matrix, m_th=m_th, iv=iv
-            ):
-                row_hws = row[hw_names]
-                if dim > 1:
-                    row["m_dist"] = round(mahalanobis(mean, row_hws, iv), 5)
-                else:
-                    std = cov_matrix
-                    hw_val = row_hws[hw_names[0]]
-                    row["m_dist"] = round(np.abs(mean - hw_val) / std, 5)
+            window_df["m_dist"] = np.round(m_dist, 5)
+            window_df["anom"] = (window_df["m_dist"] > m_th).astype(int)
+            window_df["line"] = line
+            window_df["dim"] = dim
 
-                if row["m_dist"] > m_th:
-                    row["anom"] = 1
-                else:
-                    row["anom"] = 0
+            # Set to 0 unused columns
+            for name in hw_names_rest + bus_names_rest:
+                window_df[name] = 0
 
-                return row
-
-            if window_data_points > 0:
-                # Set columns values
-                window_df = window_df.apply(calc_m_dist, axis=1)
-                window_df["line"] = line
-                window_df["dim"] = dim
-
-                # Set to 0 unused columns
-                for name in hw_names_rest + bus_names_rest:
-                    window_df[name] = 0
-
-                window_df = window_df[
-                    ["line", "datetime", "dim", "m_dist", "anom"] + bus_names_all + hw_names_all
-                ]
-                windows_dfs.append(window_df)
+            window_df = window_df[
+                ["line", "datetime", "dim", "m_dist", "anom"] + bus_names_all + hw_names_all
+            ]
+            windows_dfs.append(window_df)
 
             # Increase dim
             dim += 1
@@ -660,7 +644,7 @@ def build_series_anoms(series_df, windows_df, now):
             + hw_names_all
         )
 
-    series_df = series_df.append(new_series_df, ignore_index=True)
+    series_df = pd.concat([series_df, new_series_df], ignore_index=True)
 
     return series_df, anomalies_dfs
 
