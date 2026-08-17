@@ -79,6 +79,7 @@ def init_db():
                 vehicle_id TEXT,
                 destination TEXT,
                 stop TEXT,
+                direction INTEGER DEFAULT 0,
                 estimate_arrive INTEGER,
                 distance_bus REAL,
                 lat REAL,
@@ -193,6 +194,7 @@ def insert_buses_burst(city: str, df: pd.DataFrame):
                 str(getattr(r, "vehicleId", getattr(r, "vehicle_id", ""))),
                 str(getattr(r, "destination", "")),
                 str(getattr(r, "stop", "")),
+                int(getattr(r, "direction", 0) or 0),
                 int(getattr(r, "estimateArrive", getattr(r, "estimate_arrive", 0))),
                 float(getattr(r, "DistanceBus", getattr(r, "distance_bus", 0.0))),
                 float(getattr(r, "lat", 0.0)),
@@ -206,9 +208,9 @@ def insert_buses_burst(city: str, df: pd.DataFrame):
         conn.executemany(
             """
             INSERT INTO buses_burst (
-                city, line, bus, vehicle_id, destination, stop,
+                city, line, bus, vehicle_id, destination, stop, direction,
                 estimate_arrive, distance_bus, lat, lon, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """,
             rows,
         )

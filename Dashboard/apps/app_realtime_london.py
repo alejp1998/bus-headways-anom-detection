@@ -1353,6 +1353,9 @@ def update_buses_position(n_intervals, n_clicks, pathname, theme="dark"):
     line_burst = (
         burst.loc[burst.line.astype(str) == str(line)] if not burst.empty else pd.DataFrame()
     )
+    if not line_burst.empty:
+        # One position per bus (closest upcoming stop)
+        line_burst = line_burst.sort_values("estimateArrive").drop_duplicates(["bus"], keep="first")
     return [build_map(line_burst, theme, line=line)]
 
 
