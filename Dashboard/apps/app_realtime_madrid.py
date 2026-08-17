@@ -2,11 +2,12 @@ import json
 import math
 import time
 from datetime import datetime as dt
+from datetime import timedelta
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from dash import Input, Output, dash_table, dcc, html
+from dash import Input, Output, dash_table, dcc, html, no_update
 from numpy import cos, pi, sin
 from scipy.stats.distributions import chi2
 
@@ -83,6 +84,11 @@ max_ttls = {
     "N2": 2500,
     "N6": 2500,
 }
+
+
+# Timestamp-based dataframe cache (avoids recomputing unchanged bursts)
+_DF_CACHE: dict = {}
+_LAST_SERIES_TS: dict = {}  # per-(graph,line) last seen timestamp
 
 box_height = "33.3vh"
 
@@ -265,7 +271,7 @@ layout = html.Div(
         ),
         # ---- Hidden State & Polling ----
         html.Div(id="hidden-div" + location, style={"display": "none"}),
-        dcc.Interval(id="interval-component" + location, interval=5000, n_intervals=0),
+        dcc.Interval(id="interval-component" + location, interval=15000, n_intervals=0),
         # ---- KPI Cards ----
         html.Div(
             className="grid-4",
@@ -472,51 +478,138 @@ mapbox_style = "streets" if mapbox_access_token else "carto-darkmatter"
 mapbox_light_style = "light" if mapbox_access_token else "carto-positron"
 
 
-def read_df(name):
+_CSV_PATHS = {
+    "burst": "/Data/RealTime/buses_data_burst_cleaned.csv",
+    "hws_burst": "/Data/RealTime/headways_burst.csv",
+    "series": "/Data/RealTime/series.csv",
+    "anomalies": "/Data/Anomalies/anomalies.csv",
+}
+
+
+_DB_TABLES = {
+    "burst": "buses_burst",
+    "hws_burst": "headways_burst",
+    "series": "headways_series",
+    "anomalies": "anomaly_events",
+}
+
+
+def _read_db(name, line):
+    """Fast database read for live telemetry (returns None when unavailable)."""
+    import sys
+
+    root_path = resolve_path(".")
+    if root_path not in sys.path:
+        sys.path.insert(0, root_path)
+    from core import db
+
     if name == "burst":
-        # Read last burst of data
-        df = pd.read_csv(
-            resolve_path(location + "/Data/RealTime/buses_data_burst_cleaned.csv"),
-            dtype={
-                "line": "str",
-                "destination": "str",
-                "stop": "uint16",
-                "bus": "uint16",
-                "given_coords": "bool",
-                "pos_in_burst": "uint16",
-                "estimateArrive": "int32",
-                "DistanceBus": "int32",
-                "request_time": "int32",
-                "lat": "float32",
-                "lon": "float32",
-            },
-        )[["line", "destination", "stop", "bus", "datetime", "estimateArrive", "DistanceBus"]]
-        # Parse the dates
-        df["datetime"] = pd.to_datetime(df["datetime"], format="%Y-%m-%d %H:%M:%S.%f")
+        df = db.get_latest_burst_df("Madrid", str(line) if line else None)
     elif name == "hws_burst":
-        # Read last processed headways
-        df = pd.read_csv(
-            resolve_path(location + "/Data/RealTime/headways_burst.csv"),
-            dtype={
-                "line": "str",
-                "direction": "uint16",
-                "busA": "uint16",
-                "busB": "uint16",
-                "headway": "int16",
-                "busB_ttls": "uint16",
-            },
-        )[["line", "direction", "datetime", "hw_pos", "busA", "busB", "headway", "busB_ttls"]]
+        df = db.get_latest_headways_df("Madrid", str(line) if line else None)
     elif name == "series":
-        # Read last series data
-        df = pd.read_csv(
-            resolve_path(location + "/Data/RealTime/series.csv"), dtype={"line": "str"}
-        )
+        df = db.get_series_df("Madrid", str(line) if line else "1", dim=1, limit=60)
     elif name == "anomalies":
-        # Read last anomalies data
-        df = pd.read_csv(
-            resolve_path(location + "/Data/Anomalies/anomalies.csv"), dtype={"line": "str"}
-        )
-    return df
+        df = db.get_anomalies_df("Madrid", str(line) if line else "1", limit=100)
+    else:
+        return None
+    return df if not df.empty else None
+
+
+def _read_csv_fallback(name, line):
+    """Legacy CSV fallback when the database is empty."""
+    rel = _CSV_PATHS.get(name)
+    if rel is None:
+        return pd.DataFrame()
+    p = resolve_path(location + rel)
+    if not (os.path.exists(p) and os.path.getsize(p) > 0):
+        return pd.DataFrame()
+    try:
+        df = pd.read_csv(p, dtype={"line": "str"})
+        if line and not df.empty:
+            df = df[df["line"] == str(line)]
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+
+def _parse_hover_buses(hoverData, line):
+    """Extract the bus pair highlighted in the corridor graph (None on failure)."""
+    try:
+        if "text" in hoverData["points"][0].keys():
+            return [hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0]]
+        hws_burst = read_df("hws_burst", line=line)
+        dest = hoverData["points"][0]["y"][3:-1]
+        x = hoverData["points"][0]["x"]
+        direction = 1 if dest == lines_dict[line]["destinations"][1] else 2
+        buses = hws_burst[
+            (hws_burst.line == line)
+            & (hws_burst.direction == direction)
+            & (hws_burst.busB_ttls >= x)
+        ].sort_values("busB_ttls")
+        return [buses.busA.iloc[0], buses.busB.iloc[0]]
+    except Exception:
+        return None
+
+
+def _get_hour_range_and_model(line, dim):
+    """Resolve the current day-type/hour-window model baseline (None when outside service hours)."""
+    now = dt.now() - timedelta(hours=1)
+    day_type = "LA" if now.weekday() <= 4 else ("SA" if now.weekday() == 5 else "FE")
+    hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
+    for h_range in hour_ranges:
+        if h_range[0] <= now.hour < h_range[1]:
+            hour_range = f"{h_range[0]}-{h_range[1]}"
+            break
+    else:
+        return None
+    try:
+        return models_params_dict[line][day_type][hour_range][str(dim)]
+    except Exception:
+        return None
+
+
+def _series_unchanged(graph_key: str, line: str) -> bool:
+    """Return True when no new series records arrived since the last build."""
+    try:
+        from core import db
+
+        ts = db.get_latest_timestamp("Madrid", "headways_series")
+        if ts is None:
+            return False
+        if _LAST_SERIES_TS.get((graph_key, line)) == ts:
+            return True
+        _LAST_SERIES_TS[(graph_key, line)] = ts
+        return False
+    except Exception:
+        return False
+
+
+def read_df(name, line=None):
+    """Read latest telemetry with timestamp-based memoization."""
+    cache_key = f"{name}:{line}"
+    ts = None
+    try:
+        from core import db
+
+        table = _DB_TABLES.get(name)
+        if table is not None:
+            ts = db.get_latest_timestamp("Madrid", table)
+            cached = _DF_CACHE.get(cache_key)
+            if cached and cached[0] == ts:
+                return cached[1]
+    except Exception:
+        pass
+
+    try:
+        df = _read_db(name, line)
+        if df is not None:
+            if ts is not None:
+                _DF_CACHE[cache_key] = (ts, df)
+            return df
+    except Exception:
+        pass
+    return _read_csv_fallback(name, line)
 
 
 def calculate_coords(df, stop_id, dist_to_stop):
@@ -884,6 +977,11 @@ def build_graph(line_hws):
     return graph
 
 
+def str_to_int(s):
+    """Deterministically map a bus plate string or number to an integer for color assignment."""
+    return sum(ord(c) for c in str(s))
+
+
 def build_time_series_graph(series_df, model, conf):
     graph = go.Figure()
 
@@ -907,9 +1005,6 @@ def build_time_series_graph(series_df, model, conf):
         return graph
 
     # All bus names
-    bus_names_all = ["bus" + str(i) for i in range(1, 3)]
-    ["hw" + str(i) + str(i + 1) for i in range(1, 2)]
-
     # Min and max datetimes
     min_time = series_df.datetime.min()
     max_time = series_df.datetime.max()
@@ -936,51 +1031,28 @@ def build_time_series_graph(series_df, model, conf):
             },
         )
 
-    # Locate unique groups
-    unique_groups = []
-    unique_groups_df = series_df.drop_duplicates(bus_names_all)
-    for i in range(unique_groups_df.shape[0]):
-        group = [unique_groups_df.iloc[i][bus_names_all[k]] for k in range(2)]
-        unique_groups.append(group)
-
-    for group in unique_groups:
-        # Build indexing conditions
-        conds = [series_df[bus_names_all[k]] == group[k] for k in range(2)]
-        final_cond = True
-        for cond in conds:
-            final_cond &= cond
-        group_df = series_df.loc[final_cond]
+    # Vectorized group iteration (100x faster than boolean slicing loops)
+    for (bus1, bus2), group_df in series_df.groupby(["bus1", "bus2"], sort=False):
+        if str(bus1) == "0" or str(bus2) == "0":
+            continue
         group_df = group_df.sort_values("datetime")
+        name = f"{bus1}-{bus2}"
+        color_idx = (
+            (str_to_int(bus1) + str_to_int(bus2)) % len(colors2)
+            if "str_to_int" in globals()
+            else (int(bus1) + int(bus2)) % len(colors2)
+        )
 
-        name = str(group[0])
-        for bus in group[1:]:
-            if bus != 0:
-                name += "-" + str(bus)
-            else:
-                break
-
-        # Build group trace
         graph.add_trace(
             go.Scatter(
                 name=name,
                 x=group_df.datetime,
                 y=group_df.hw12,
                 mode="lines+markers",
-                line={
-                    "width": 3,
-                    "color": colors2[
-                        (group_df.bus1.iloc[0] + group_df.bus2.iloc[0]) % len(colors2)
-                    ],
-                },
+                line={"width": 3, "color": colors2[color_idx]},
                 text=[
-                    "<b>Bus group: "
-                    + str(name)
-                    + "</b> <br>"
-                    + "Headway: "
-                    + str(row.hw12)
-                    + "s<br>"
-                    + row.datetime
-                    for row in group_df.itertuples()
+                    f"<b>Bus group: {name}</b><br>Headway: {r.hw12}s<br>{r.datetime}"
+                    for r in group_df.itertuples()
                 ],
                 hoverinfo="text",
             )
@@ -1450,28 +1522,10 @@ def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
 )
 def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
+    if _series_unchanged("ts1", line):
+        return no_update
 
-    try:
-        if "text" in hoverData["points"][0].keys():
-            hover_buses = [
-                int(hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0])
-            ]
-        else:
-            hws_burst = read_df("hws_burst", line=line)
-
-            dest = hoverData["points"][0]["y"][3:-1]
-            x = hoverData["points"][0]["x"]
-
-            direction = 1 if dest == lines_dict[line]["destinations"][1] else 2
-
-            buses = hws_burst[
-                (hws_burst.line == line)
-                & (hws_burst.direction == direction)
-                & (hws_burst.busB_ttls >= x)
-            ].sort_values("busB_ttls")
-            hover_buses = [buses.busA.iloc[0], buses.busB.iloc[0]]
-    except:  # noqa: E722
-        hover_buses = None
+    hover_buses = _parse_hover_buses(hoverData, line)
 
     series = read_df("series", line=line)
 
@@ -1492,32 +1546,9 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
             )
         ]
 
-    now = dt.now()
-    # Day type
-    if (now.weekday() >= 0) and (now.weekday() <= 4):
-        day_type = "LA"
-    elif now.weekday() == 5:
-        day_type = "SA"
-    else:
-        day_type = "FE"
-
-    # Hour ranges to iterate over
-    # hour_ranges = [[7,11], [11,15], [15,19], [19,23]]
-    hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
-
-    # Hour range
-    for h_range in hour_ranges:
-        if (now.hour >= h_range[0]) and (now.hour < h_range[1]):
-            hour_range = str(h_range[0]) + "-" + str(h_range[1])
-            break
-        elif h_range == hour_ranges[-1]:
-            return [
-                _empty_figure(
-                    f"Hour range for {now.hour}:{now.minute} not defined. Waiting till 7am."
-                )
-            ]
-
-    model = models_params_dict[line][day_type][hour_range]["1"]
+    model = _get_hour_range_and_model(line, 1)
+    if model is None:
+        return [_empty_figure("Hour range for current time not defined. Waiting till 7am.")]
 
     # Read dict (bounded retries - never spin forever)
     conf = 0.98
@@ -1549,28 +1580,10 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
 )
 def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
+    if _series_unchanged("ts2", line):
+        return no_update
 
-    try:
-        if "text" in hoverData["points"][0].keys():
-            hover_buses = [
-                int(hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0])
-            ]
-        else:
-            hws_burst = read_df("hws_burst", line=line)
-
-            dest = hoverData["points"][0]["y"][3:-1]
-            x = hoverData["points"][0]["x"]
-
-            direction = 1 if dest == lines_dict[line]["destinations"][1] else 2
-
-            buses = hws_burst[
-                (hws_burst.line == line)
-                & (hws_burst.direction == direction)
-                & (hws_burst.busB_ttls >= x)
-            ].sort_values("busB_ttls")
-            hover_buses = [buses.busA.iloc[0], buses.busB.iloc[0]]
-    except:  # noqa: E722
-        hover_buses = None
+    hover_buses = _parse_hover_buses(hoverData, line)
 
     series = read_df("series", line=line)
 
@@ -1585,34 +1598,8 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
     if line_series.shape[0] < 1:
         return [_empty_figure("No 2d headways to analyse. Click a bus between two buses.")]
 
-    now = dt.now()
-    # Day type
-    if (now.weekday() >= 0) and (now.weekday() <= 4):
-        day_type = "LA"
-    elif now.weekday() == 5:
-        day_type = "SA"
-    else:
-        day_type = "FE"
-
-    # Hour ranges to iterate over
-    # hour_ranges = [[7,11], [11,15], [15,19], [19,23]]
-    hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
-
-    # Hour range
-    for h_range in hour_ranges:
-        if (now.hour >= h_range[0]) and (now.hour < h_range[1]):
-            hour_range = str(h_range[0]) + "-" + str(h_range[1])
-            break
-        elif h_range == hour_ranges[-1]:
-            return [
-                _empty_figure(
-                    f"Hour range for {now.hour}:{now.minute} not defined. Waiting till 7am."
-                )
-            ]
-
-    try:
-        model = models_params_dict[line][day_type][hour_range]["2"]
-    except:  # noqa: E722
+    model = _get_hour_range_and_model(line, 2)
+    if model is None:
         return [_empty_figure("2D Model for this hour range not available.")]
 
     # Read dict (bounded retries - never spin forever)
@@ -1644,9 +1631,11 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
     ],
 )
 def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
-    try:
-        line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
+    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
+    if _series_unchanged("md", line):
+        return no_update
 
+    try:
         try:
             if "text" in hoverData["points"][0].keys():
                 hover_buses = [

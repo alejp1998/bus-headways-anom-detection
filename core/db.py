@@ -428,7 +428,7 @@ def get_latest_headways_df(city: str, line: str | None = None) -> pd.DataFrame:
         return pd.read_sql_query(query, conn, params=params)
 
 
-def get_series_df(city: str, line: str, dim: int = 1, limit: int = 300) -> pd.DataFrame:
+def get_series_df(city: str, line: str, dim: int = 1, limit: int = 60) -> pd.DataFrame:
     """Retrieve recent multi-dimensional headway time series."""
     query = """
         SELECT line, dim, m_dist, is_anomaly AS anom,
@@ -459,6 +459,15 @@ def get_anomalies_df(city: str, line: str, limit: int = 100) -> pd.DataFrame:
     """
     with db_session() as conn:
         return pd.read_sql_query(query, conn, params=[city, str(line), limit])
+
+
+def get_latest_timestamp(city: str, table: str) -> str | None:
+    """Cheap indexed lookup of the most recent record timestamp (for change detection)."""
+    with db_session() as conn:
+        row = conn.execute(
+            f"SELECT MAX(created_at) AS ts FROM {table} WHERE city = ?", [city]
+        ).fetchone()
+        return row["ts"] if row and row["ts"] else None
 
 
 def get_all_weekly_history(city: str) -> list[dict]:
