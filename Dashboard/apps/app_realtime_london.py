@@ -1728,8 +1728,9 @@ def update_kpis(n_intervals, n_clicks, pathname):
     [Input("analytics-tabs" + location, "value")],
 )
 def switch_analytics_tab(tab):
-    hidden = {"display": "none"}
-    visible = {"height": "52vh"}
+    # Use visibility (not display) so Plotly keeps rendering hidden graphs with real dimensions
+    hidden = {"visibility": "hidden", "position": "absolute", "height": "52vh", "width": "100%"}
+    visible = {"height": "52vh", "position": "relative", "width": "100%"}
     return [
         visible if tab == "ts1" + location else hidden,
         visible if tab == "ts2" + location else hidden,
