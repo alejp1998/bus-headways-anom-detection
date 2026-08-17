@@ -1,0 +1,106 @@
+[
+  {
+    "city": "London",
+    "total_records": 5610,
+    "lines": {
+      "18": {
+        "total_bursts": 0,
+        "mean_headway": 0.0,
+        "std_headway": 0.0,
+        "hourly_baselines": {}
+      },
+      "25": {
+        "total_bursts": 5610,
+        "mean_headway": 0.0,
+        "std_headway": 0.0,
+        "hourly_baselines": {}
+      }
+    },
+    "fleet_size": 30,
+    "week_id": "2026_W34",
+    "timestamp": "2026-08-17T00:00:00",
+    "raw_data_bytes": 327815,
+    "disk_space_saved_mb": 0.33,
+    "api_success_rate": 99.2,
+    "overall_qos": 91.0,
+    "anomalies_detected": 18
+  },
+  {
+    "city": "London",
+    "total_records": 5940,
+    "lines": {
+      "18": {
+        "total_bursts": 0,
+        "mean_headway": 0.0,
+        "std_headway": 0.0,
+        "hourly_baselines": {}
+      },
+      "25": {
+        "total_bursts": 5610,
+        "mean_headway": 0.0,
+        "std_headway": 0.0,
+        "hourly_baselines": {}
+      }
+    },
+    "fleet_size": 66,
+    "week_id": "2026_W33",
+    "timestamp": "2026-08-10T00:00:00",
+    "raw_data_bytes": 327815,
+    "disk_space_saved_mb": 0.32,
+    "api_success_rate": 99.7,
+    "overall_qos": 89.2,
+    "anomalies_detected": 24
+  },
+  {
+    "city": "London",
+    "total_records": 6010,
+    "lines": {
+      "18": {
+        "total_bursts": 0,
+        "mean_headway": 0.0,
+        "std_headway": 0.0,
+        "hourly_baselines": {}
+      },
+      "25": {
+        "total_bursts": 5610,
+        "mean_headway": 0.0,
+        "std_headway": 0.0,
+        "hourly_baselines": {}
+      }
+    },
+    "fleet_size": 67,
+    "week_id": "2026_W32",
+    "timestamp": "2026-08-03T00:00:00",
+    "raw_data_bytes": 327815,
+    "disk_space_saved_mb": 0.32,
+    "api_success_rate": 99.6,
+    "overall_qos": 92.8,
+    "anomalies_detected": 24
+  },
+  {
+    "city": "London",
+    "total_records": 5820,
+    "lines": {
+      "18": {
+        "total_bursts": 0,
+        "mean_headway": 0.0,
+        "std_headway": 0.0,
+        "hourly_baselines": {}
+      },
+      "25": {
+        "total_bursts": 5610,
+        "mean_headway": 0.0,
+        "std_headway": 0.0,
+        "hourly_baselines": {}
+      }
+    },
+    "fleet_size": 65,
+    "week_id": "2026_W31",
+    "timestamp": "2026-07-27T00:00:00",
+    "raw_data_bytes": 327815,
+    "disk_space_saved_mb": 0.31,
+    "api_success_rate": 99.8,
+    "overall_qos": 94.6,
+    "anomalies_detected": 20
+  }
+]

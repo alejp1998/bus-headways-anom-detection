@@ -67,6 +67,7 @@ max-complexity = 15
 "London/Scripts/**" = ["C901", "E402"]
 "Madrid/Scripts/CollectData/retrieve_data.py" = ["E402"]
 "Dashboard/apps/app_realtime_*.py" = ["E402", "C901"]
+"Dashboard/apps/app_history.py" = ["C901"]
 "tests/*" = ["E402"]
 
 [tool.ruff.lint.isort]

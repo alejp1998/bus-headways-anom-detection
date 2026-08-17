@@ -276,5 +276,61 @@ layout = html.Div(
                 ),
             ],
         ),
+        # Historical Models & Collector Analytics CTA
+        html.Div(
+            className="modern-card",
+            style={
+                "background": "linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(79, 70, 229, 0.08) 100%)",
+                "borderColor": "rgba(139, 92, 246, 0.25)",
+                "marginTop": "1.5rem",
+            },
+            children=[
+                html.Div(
+                    className="flex-between flex-wrap",
+                    children=[
+                        html.Div(
+                            style={"maxWidth": "760px"},
+                            children=[
+                                html.Div(
+                                    className="flex-gap",
+                                    children=[
+                                        html.Span(
+                                            "Automated Weekly Model Rotation",
+                                            className="badge-pill primary",
+                                        ),
+                                        html.Span(
+                                            "Every Monday 00:00", className="badge-pill warning"
+                                        ),
+                                    ],
+                                ),
+                                html.H2(
+                                    "Historical Analytics, Baseline Drift & Collector Health",
+                                    style={"fontSize": "1.4rem", "margin": "0.6rem 0 0.4rem"},
+                                ),
+                                html.P(
+                                    "Inspect the fitted Gaussian baselines (μ, Σ) that evolve each week, review the QoS regularity index, anomaly incident volumes, and telemetry collection statistics — all distilled from raw streams and archived indefinitely as compact parameter summaries.",
+                                    style={
+                                        "color": "var(--text-muted)",
+                                        "fontSize": "0.95rem",
+                                        "lineHeight": "1.6",
+                                    },
+                                ),
+                            ],
+                        ),
+                        dcc.Link(
+                            [
+                                html.I(
+                                    className="fa-solid fa-chart-line",
+                                    style={"marginRight": "0.5rem"},
+                                ),
+                                "Open History & Models",
+                            ],
+                            className="btn-primary-gradient",
+                            href="/history",
+                        ),
+                    ],
+                ),
+            ],
+        ),
     ]
 )

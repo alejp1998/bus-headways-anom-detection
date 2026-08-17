@@ -1,5 +1,6 @@
 # Pre-commit configuration for bus-headways-anom-detection
 # Matching standards from dialogue-swarm
+exclude: '^(.*/)?(hyperparams\.json|buses_data_week_cleaned\.csv)$'
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

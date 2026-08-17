@@ -7,7 +7,7 @@ from dash import Input, Output, dcc, html
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app import app
-from apps import app_credits, app_home, app_realtime_london, app_realtime_madrid
+from apps import app_credits, app_history, app_home, app_realtime_london, app_realtime_madrid
 
 # Custom HTML index template with theme script & typography
 app.index_string = """
@@ -38,6 +38,7 @@ app.index_string = """
                         <a class="nav-link" href="/home"><i class="fa-solid fa-house"></i> Overview</a>
                         <a class="nav-link" href="/realtime/madrid/1"><i class="fa-solid fa-location-dot"></i> Madrid EMT</a>
                         <a class="nav-link" href="/realtime/london/25"><i class="fa-solid fa-location-dot"></i> London TfL</a>
+                        <a class="nav-link" href="/history"><i class="fa-solid fa-clock-rotate-left"></i> History & Models</a>
                         <a class="nav-link" href="/credits"><i class="fa-solid fa-graduation-cap"></i> Credits</a>
                     </nav>
                     <div class="theme-switch-container">
@@ -138,6 +139,8 @@ def display_page(pathname):
                     ],
                 )
             return app_realtime_london.layout
+        elif pathname == "/history":
+            return app_history.layout
         elif pathname == "/credits":
             return app_credits.layout
         else:
