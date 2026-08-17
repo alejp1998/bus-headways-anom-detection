@@ -133,55 +133,9 @@ layout = html.Div(
                         html.Div(
                             className="flex-gap flex-wrap",
                             children=[
-                                dcc.Link(
-                                    "L1",
-                                    href="/realtime/madrid/1",
-                                    className="route-btn active",
-                                    style={
-                                        "padding": "0.45rem 0.9rem",
-                                        "minWidth": "0",
-                                        "fontSize": "0.85rem",
-                                    },
-                                ),
-                                dcc.Link(
-                                    "L44",
-                                    href="/realtime/madrid/44",
-                                    className="route-btn",
-                                    style={
-                                        "padding": "0.45rem 0.9rem",
-                                        "minWidth": "0",
-                                        "fontSize": "0.85rem",
-                                    },
-                                ),
-                                dcc.Link(
-                                    "L82",
-                                    href="/realtime/madrid/82",
-                                    className="route-btn",
-                                    style={
-                                        "padding": "0.45rem 0.9rem",
-                                        "minWidth": "0",
-                                        "fontSize": "0.85rem",
-                                    },
-                                ),
-                                dcc.Link(
-                                    "L132",
-                                    href="/realtime/madrid/132",
-                                    className="route-btn",
-                                    style={
-                                        "padding": "0.45rem 0.9rem",
-                                        "minWidth": "0",
-                                        "fontSize": "0.85rem",
-                                    },
-                                ),
-                                dcc.Link(
-                                    "L133",
-                                    href="/realtime/madrid/133",
-                                    className="route-btn",
-                                    style={
-                                        "padding": "0.45rem 0.9rem",
-                                        "minWidth": "0",
-                                        "fontSize": "0.85rem",
-                                    },
+                                html.Div(
+                                    id="route-pills-container" + location,
+                                    className="flex-gap flex-wrap",
                                 ),
                                 html.Button(
                                     [html.I(className="fa-solid fa-rotate"), " Refresh"],

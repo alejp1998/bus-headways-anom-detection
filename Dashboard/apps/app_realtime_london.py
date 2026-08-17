@@ -110,25 +110,9 @@ layout = html.Div(
                         html.Div(
                             className="flex-gap flex-wrap",
                             children=[
-                                dcc.Link(
-                                    "L25",
-                                    href="/realtime/london/25",
-                                    className="route-btn active",
-                                    style={
-                                        "padding": "0.45rem 0.9rem",
-                                        "minWidth": "0",
-                                        "fontSize": "0.85rem",
-                                    },
-                                ),
-                                dcc.Link(
-                                    "L18",
-                                    href="/realtime/london/18",
-                                    className="route-btn",
-                                    style={
-                                        "padding": "0.45rem 0.9rem",
-                                        "minWidth": "0",
-                                        "fontSize": "0.85rem",
-                                    },
+                                html.Div(
+                                    id="route-pills-container" + location,
+                                    className="flex-gap flex-wrap",
                                 ),
                                 html.Button(
                                     [html.I(className="fa-solid fa-rotate"), " Refresh"],

@@ -78,6 +78,6 @@ def theme_layout(theme="dark", uirevision=None):
 
 
 # Initialize Dash application
-app = dash.Dash(__name__, suppress_callback_exceptions=True)
+app = dash.Dash(__name__, suppress_callback_exceptions=True, update_title="")
 app.title = "Bus Headways | Real-Time Anomaly Detection"
 server = app.server
