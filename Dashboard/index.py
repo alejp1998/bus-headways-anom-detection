@@ -17,6 +17,9 @@ app.index_string = """
         {%metas%}
         <title>Bus Headways | Real-Time Anomaly Detection</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+        <link rel="alternate icon" type="image/x-icon" href="/assets/favicon.ico">
+        <link rel="apple-touch-icon" href="/assets/favicon.png">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
         {%favicon%}
         {%css%}

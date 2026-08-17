@@ -75,86 +75,22 @@ with open(resolve_path(location + "/Data/Anomalies/models_params.json")) as f:
 layout = html.Div(
     className="",
     children=[
-        # ---- Analysis Settings (static sliders) ----
-        html.Div(
-            className="flex-gap flex-wrap",
-            style={
-                "marginBottom": "1rem",
-                "padding": "0.75rem 1.25rem",
-                "background": "var(--bg-card-subtle)",
-                "borderRadius": "12px",
-                "border": "1px solid var(--border-color)",
-            },
-            children=[
-                html.Span(
-                    html.I(className="fa-solid fa-sliders"), style={"color": "var(--text-muted)"}
-                ),
-                html.Label(
-                    [
-                        "Confidence",
-                        html.Div(
-                            style={"width": "180px"},
-                            children=[
-                                dcc.Slider(
-                                    id="conf-slider" + location,
-                                    min=90,
-                                    max=100,
-                                    step=0.05,
-                                    value=99,
-                                    marks={i: f"{i}%" for i in range(90, 101, 2)},
-                                )
-                            ],
-                        ),
-                    ],
-                    style={
-                        "display": "flex",
-                        "alignItems": "center",
-                        "gap": "0.5rem",
-                        "fontSize": "0.82rem",
-                    },
-                ),
-                html.Label(
-                    [
-                        "Size Threshold",
-                        html.Div(
-                            style={"width": "180px"},
-                            children=[
-                                dcc.Slider(
-                                    id="size-th-slider" + location,
-                                    min=1,
-                                    max=15,
-                                    step=1,
-                                    value=5,
-                                    marks={i: str(i) for i in range(1, 16, 2)},
-                                )
-                            ],
-                        ),
-                    ],
-                    style={
-                        "display": "flex",
-                        "alignItems": "center",
-                        "gap": "0.5rem",
-                        "fontSize": "0.82rem",
-                    },
-                ),
-            ],
-        ),
-        html.Div(id="hidden-div" + location, style={"display": "none"}),
-        dcc.Interval(id="interval-component" + location, interval=5000, n_intervals=0),
-        # ---- Executive Toolbar ----
+        # ---- Executive Control & Parameters Toolbar ----
         html.Div(
             className="modern-card no-hover",
-            style={"padding": "1.2rem 1.5rem", "marginBottom": "1rem"},
+            style={"padding": "1.25rem 1.5rem", "marginBottom": "1.25rem"},
             children=[
+                # Top Row: Title, Route Pills, Action Buttons
                 html.Div(
                     className="flex-between flex-wrap",
+                    style={"gap": "1rem", "marginBottom": "1rem"},
                     children=[
                         html.Div(
                             className="flex-gap flex-wrap",
                             children=[
                                 html.H1(
-                                    "London Live Transit Monitor",
-                                    style={"fontSize": "1.6rem", "margin": 0},
+                                    "London Transit Monitor",
+                                    style={"fontSize": "1.55rem", "margin": 0, "fontWeight": "700"},
                                 ),
                                 html.Span(
                                     [html.Span(className="pulse-indicator"), " LIVE"],
@@ -163,7 +99,11 @@ layout = html.Div(
                                 ),
                                 html.Span(
                                     id="tab-title" + location,
-                                    style={"fontSize": "0.95rem", "color": "var(--text-muted)"},
+                                    style={
+                                        "fontSize": "0.92rem",
+                                        "color": "var(--text-muted)",
+                                        "fontFamily": "var(--font-mono)",
+                                    },
                                 ),
                             ],
                         ),
@@ -200,8 +140,124 @@ layout = html.Div(
                         ),
                     ],
                 ),
+                # Bottom Row: Responsive Sliders & Model Baseline Bar
+                html.Div(
+                    style={
+                        "borderTop": "1px solid var(--border-color)",
+                        "paddingTop": "0.85rem",
+                        "display": "flex",
+                        "alignItems": "center",
+                        "justifyContent": "space-between",
+                        "flexWrap": "wrap",
+                        "gap": "1.25rem",
+                    },
+                    children=[
+                        # Slider 1: Confidence
+                        html.Div(
+                            style={"flex": "1 1 240px", "minWidth": "220px", "maxWidth": "380px"},
+                            children=[
+                                html.Div(
+                                    className="flex-between",
+                                    style={"marginBottom": "0.2rem"},
+                                    children=[
+                                        html.Label(
+                                            [
+                                                html.I(
+                                                    className="fa-solid fa-sliders",
+                                                    style={
+                                                        "marginRight": "0.4rem",
+                                                        "color": "var(--primary-color)",
+                                                    },
+                                                ),
+                                                "Confidence (1 - α)",
+                                            ],
+                                            style={"fontSize": "0.82rem", "fontWeight": "600"},
+                                        ),
+                                        html.Span(
+                                            "Anomaly Threshold",
+                                            style={
+                                                "fontSize": "0.75rem",
+                                                "color": "var(--text-muted)",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                                dcc.Slider(
+                                    id="conf-slider" + location,
+                                    min=90,
+                                    max=100,
+                                    step=0.05,
+                                    value=99,
+                                    marks={i: f"{i}%" for i in range(90, 101, 2)},
+                                ),
+                            ],
+                        ),
+                        # Slider 2: Size Threshold
+                        html.Div(
+                            style={"flex": "1 1 240px", "minWidth": "220px", "maxWidth": "380px"},
+                            children=[
+                                html.Div(
+                                    className="flex-between",
+                                    style={"marginBottom": "0.2rem"},
+                                    children=[
+                                        html.Label(
+                                            [
+                                                html.I(
+                                                    className="fa-solid fa-filter",
+                                                    style={
+                                                        "marginRight": "0.4rem",
+                                                        "color": "var(--accent-color)",
+                                                    },
+                                                ),
+                                                "Filter Window (k)",
+                                            ],
+                                            style={"fontSize": "0.82rem", "fontWeight": "600"},
+                                        ),
+                                        html.Span(
+                                            "Consecutive Ticks",
+                                            style={
+                                                "fontSize": "0.75rem",
+                                                "color": "var(--text-muted)",
+                                            },
+                                        ),
+                                    ],
+                                ),
+                                dcc.Slider(
+                                    id="size-th-slider" + location,
+                                    min=1,
+                                    max=15,
+                                    step=1,
+                                    value=5,
+                                    marks={i: str(i) for i in range(1, 16, 2)},
+                                ),
+                            ],
+                        ),
+                        # Model Badge & Info
+                        html.Div(
+                            className="flex-gap",
+                            style={"flex": "0 1 auto"},
+                            children=[
+                                html.Span(
+                                    [
+                                        html.I(
+                                            className="fa-solid fa-chart-pie",
+                                            style={"marginRight": "0.35rem"},
+                                        ),
+                                        "Gaussian d≤3",
+                                    ],
+                                    className="badge-pill primary",
+                                    style={"fontSize": "0.72rem"},
+                                    title="Multivariate Gaussian distribution with Mahalanobis distance metric",
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
             ],
         ),
+        # ---- Hidden State & Polling ----
+        html.Div(id="hidden-div" + location, style={"display": "none"}),
+        dcc.Interval(id="interval-component" + location, interval=5000, n_intervals=0),
         # ---- KPI Cards ----
         html.Div(
             className="grid-4",
@@ -637,7 +693,7 @@ def build_graph(line_hws):
             )
         )
 
-    graph.update_layout(xaxis_range=(0, max_ttls[line]))
+    graph.update_layout(xaxis_range=(0, max_ttls[line]), uirevision=str(line))
 
     # Finally we return the graph
     return graph
@@ -649,6 +705,7 @@ def build_time_series_graph(series_df, model, conf):
     # Set title and layout
     graph.update_layout(
         title="<b>1D HEADWAYS TIME SERIES</b> - (In seconds)",
+        uirevision="ts1",
         legend_title="<b>Group ids</b>",
         yaxis={
             "nticks": 20,
@@ -754,6 +811,7 @@ def build_2d_time_series_graph(series_df, model, conf):
     # Set title and layout
     graph.update_layout(
         title="<b>2D HEADWAYS TIME SERIES</b> - (In seconds)",
+        uirevision="ts2",
         legend_title="<b>Group ids</b>",
         xaxis={"nticks": 20, "zerolinecolor": "darkgrey"},
         yaxis={"nticks": 20, "zerolinecolor": "darkgrey"},
@@ -874,6 +932,7 @@ def build_m_dist_graph(series_df, line):
     # Set title and layout
     graph.update_layout(
         title="<b>MAHALANOBIS DISTANCE</b>",
+        uirevision="md",
         legend_title="<b>Group ids</b>",
         xaxis={"nticks": 20},
         yaxis={"title_text": "Mahalanobis Distance", "nticks": 20},
@@ -1135,7 +1194,7 @@ def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
     flat_hws_graph = build_graph(line_hws)
 
     # Apply theme styling and return the figure directly (keeps graph mounted, no flicker)
-    flat_hws_graph.update_layout(**theme_layout(theme))
+    flat_hws_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [flat_hws_graph]
 
 
@@ -1231,7 +1290,7 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
 
     time_series_graph = build_time_series_graph(line_series, model, conf)
 
-    time_series_graph.update_layout(**theme_layout(theme))
+    time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 
 
@@ -1324,7 +1383,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
 
     time_series_graph = build_2d_time_series_graph(line_series, model, conf)
 
-    time_series_graph.update_layout(**theme_layout(theme))
+    time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 
 
@@ -1402,7 +1461,7 @@ def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"
     # Create mh dist graph
     m_dist_graph = build_m_dist_graph(line_series, line)
 
-    m_dist_graph.update_layout(**theme_layout(theme))
+    m_dist_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [m_dist_graph]
 
 

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="100%" height="100%">
+  <!-- White circular background with purple border -->
+  <circle cx="128" cy="128" r="116" fill="#FFFFFF" stroke="#8B5CF6" stroke-width="6"/>
+  <!-- Bus Body -->
+  <rect x="62" y="68" width="132" height="114" rx="22" fill="#8B5CF6"/>
+  <!-- Destination sign -->
+  <rect x="92" y="72" width="72" height="6" rx="3" fill="#4F46E5"/>
+  <!-- Windshield -->
+  <rect x="76" y="82" width="104" height="42" rx="10" fill="#FFFFFF"/>
+  <line x1="128" y1="82" x2="128" y2="124" stroke="#8B5CF6" stroke-width="4"/>
+  <!-- Headlights -->
+  <circle cx="87" cy="149" r="9" fill="#FFFFFF"/>
+  <circle cx="169" cy="149" r="9" fill="#FFFFFF"/>
+  <!-- Grille -->
+  <rect x="98" y="158" width="60" height="10" rx="4" fill="#4F46E5"/>
+  <!-- Wheels -->
+  <rect x="78" y="180" width="24" height="14" rx="5" fill="#1E1B4B"/>
+  <rect x="154" y="180" width="24" height="14" rx="5" fill="#1E1B4B"/>
+</svg>
