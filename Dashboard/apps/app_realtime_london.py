@@ -1590,7 +1590,12 @@ def switch_analytics_tab(tab):
 )
 def update_active_route_pills(pathname):
     current_line = pathname.split("/")[-1] if pathname else "25"
-    all_lines = [("25", "Line 25 (Active Data)"), ("18", "Line 18")]
+    all_lines = [
+        ("18", "Line 18"),
+        ("24", "Line 24"),
+        ("25", "Line 25"),
+        ("73", "Line 73"),
+    ]
     pills = []
     for line, label in all_lines:
         is_active = line == current_line

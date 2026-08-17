@@ -12,7 +12,21 @@ HOUR_RANGES = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21]
 
 
 def get_history_index(city: str) -> list[dict]:
-    """Load historical index for a city."""
+    """Load historical index from database with JSON fallback."""
+    try:
+        import sys
+
+        root_path = str(ROOT_DIR)
+        if root_path not in sys.path:
+            sys.path.insert(0, root_path)
+        from core import db
+
+        records = db.get_all_weekly_history(city)
+        if records:
+            return records
+    except Exception:
+        pass
+
     index_file = ROOT_DIR / city / "Data" / "History" / "history_index.json"
     if index_file.exists():
         try:
@@ -24,7 +38,21 @@ def get_history_index(city: str) -> list[dict]:
 
 
 def get_week_data(city: str, week_id: str) -> dict:
-    """Load full historical record for a specific week."""
+    """Load full historical record for a specific week from database."""
+    try:
+        import sys
+
+        root_path = str(ROOT_DIR)
+        if root_path not in sys.path:
+            sys.path.insert(0, root_path)
+        from core import db
+
+        doc = db.get_single_week_data(city, week_id)
+        if doc:
+            return doc
+    except Exception:
+        pass
+
     week_file = ROOT_DIR / city / "Data" / "History" / f"weekly_{week_id}.json"
     if week_file.exists():
         try:

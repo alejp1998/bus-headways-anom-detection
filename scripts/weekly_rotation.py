@@ -17,6 +17,7 @@ import datetime as dt
 import json
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 
@@ -290,6 +291,17 @@ def rotate_and_archive_city(
 
     with open(index_file, "w") as f:
         json.dump(history_index, f, indent=2)
+
+    # 6b. Update SQLite Database Weekly History
+    try:
+        sys.path.insert(0, str(ROOT_DIR))
+        from core import db
+
+        db.upsert_weekly_history(city, city_stats, new_models)
+        db.prune_old_telemetry(days=7)
+        print(f"[{city}] SQLite database updated with weekly history & pruned old telemetry.")
+    except Exception as e:
+        print(f"[{city}] Warning updating database: {e}")
 
     # 7. Truncate/reset raw weekly buffer to reclaim disk space
     if week_csv.exists() and source_file == week_csv:
