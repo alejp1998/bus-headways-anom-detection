@@ -632,8 +632,7 @@ def ellipse(mus, cov_matrix, conf):
 
 
 def calc_map_params(df):
-    # Select line line shapes
-    line = df.line.iloc[0]
+    line = str(df.line.iloc[0])
     line1 = line_shapes.loc[(line_shapes.line_sn == line) & (line_shapes.direction == 1)]
     line2 = line_shapes.loc[(line_shapes.line_sn == line) & (line_shapes.direction == 2)]
     dest1 = lines_dict[line]["destinations"][1]
@@ -644,43 +643,26 @@ def calc_map_params(df):
             lon, lat = calculate_coords(line1, bus.stop, bus.DistanceBus)
         else:
             lon, lat = calculate_coords(line2, bus.stop, bus.DistanceBus)
-
         lons.append(lon)
         lats.append(lat)
 
     df["lon"] = lons
     df["lat"] = lats
-    center_x = df.lon.mean()
-    center_y = df.lat.mean()
 
-    if df.shape[0] >= 3:
-        center_x = line1.lon.mean()
-        center_y = line2.lat.mean()
-        zoom = zooms[line]
-    elif (df.shape[0] > 1) & (df.shape[0] < 3):
-        zoom = min(
-            max(
-                3
-                * math.log(
-                    1
-                    / max(
-                        (
-                            min(
-                                math.sqrt(
-                                    (max(lons) - min(lons)) ** 2 + (max(lats) - min(lats)) ** 2
-                                ),
-                                1,
-                            )
-                        ),
-                        0.0001,
-                    )
-                ),
-                zooms[line],
-            ),
-            13.5,
-        )
+    # Stable route-level geometric center and zoom (prevents camera jumps on updates)
+    if not line1.empty and not line2.empty:
+        center_x = float((line1.lon.mean() + line2.lon.mean()) / 2.0)
+        center_y = float((line1.lat.mean() + line2.lat.mean()) / 2.0)
+    elif not line1.empty:
+        center_x = float(line1.lon.mean())
+        center_y = float(line1.lat.mean())
+    elif not df.empty and "lon" in df.columns:
+        center_x = float(df.lon.mean())
+        center_y = float(df.lat.mean())
     else:
-        zoom = 14
+        center_x, center_y = -3.6922, 40.4299
+
+    zoom = float(zooms.get(line, 12.5))
     return df, center_x, center_y, zoom
 
 
@@ -1895,3 +1877,26 @@ def switch_analytics_tab(tab):
         visible if tab == "md" + location else hidden,
         {"height": "52vh", "overflowY": "auto"} if tab == "an" + location else hidden,
     ]
+
+
+# CALLBACK 9 - Dynamic Route Pills Active State
+@app.callback(
+    Output("route-pills-container" + location, "children"),
+    [Input("url", "pathname")],
+)
+def update_active_route_pills(pathname):
+    current_line = pathname.split("/")[-1] if pathname else "1"
+    all_lines = ["1", "44", "82", "132", "133"]
+    pills = []
+    for line in all_lines:
+        is_active = line == current_line
+        cls = "route-btn active" if is_active else "route-btn"
+        pills.append(
+            dcc.Link(
+                f"Line {line}",
+                href=f"/realtime/madrid/{line}",
+                className=cls,
+                style={"padding": "0.45rem 0.9rem", "minWidth": "0", "fontSize": "0.85rem"},
+            )
+        )
+    return pills

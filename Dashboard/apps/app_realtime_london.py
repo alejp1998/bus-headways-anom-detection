@@ -1581,3 +1581,26 @@ def switch_analytics_tab(tab):
         visible if tab == "md" + location else hidden,
         {"height": "52vh", "overflowY": "auto"} if tab == "an" + location else hidden,
     ]
+
+
+# CALLBACK 9 - Dynamic Route Pills Active State
+@app.callback(
+    Output("route-pills-container" + location, "children"),
+    [Input("url", "pathname")],
+)
+def update_active_route_pills(pathname):
+    current_line = pathname.split("/")[-1] if pathname else "25"
+    all_lines = [("25", "Line 25 (Active Data)"), ("18", "Line 18")]
+    pills = []
+    for line, label in all_lines:
+        is_active = line == current_line
+        cls = "route-btn active" if is_active else "route-btn"
+        pills.append(
+            dcc.Link(
+                label,
+                href=f"/realtime/london/{line}",
+                className=cls,
+                style={"padding": "0.45rem 0.9rem", "minWidth": "0", "fontSize": "0.85rem"},
+            )
+        )
+    return pills
