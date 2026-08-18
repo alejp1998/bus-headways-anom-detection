@@ -1495,7 +1495,7 @@ def update_time_series_hws(n_intervals, pathname, theme="dark", conf_val=98, hov
         return [_empty_figure("Hour range for current time not defined. Waiting till 7am.")]
 
     time_series_graph = build_time_series_graph(line_series, model, conf=conf)
-    _store_figure("ts1", line, time_series_graph)
+    _store_figure(f"ts1_{conf}", line, time_series_graph)
     time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 
@@ -1543,7 +1543,7 @@ def update_2d_time_series_hws(n_intervals, pathname, theme="dark", conf_val=98, 
         return [_empty_figure("Hour range for current time not defined. Waiting till 7am.")]
 
     time_series_graph = build_2d_time_series_graph(line_series, model, conf=conf)
-    _store_figure("ts2", line, time_series_graph)
+    _store_figure(f"ts2_{conf}", line, time_series_graph)
     time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 
