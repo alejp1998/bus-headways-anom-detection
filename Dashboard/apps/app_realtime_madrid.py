@@ -782,39 +782,75 @@ def ellipse(mus, cov_matrix, conf):
     return x, y
 
 
-def calc_map_params(line="1"):
-    """Compute stable map center, zoom, and camera bearing.
+def calc_map_params(line="25", container_w=740, container_h=370, margin=0.18):
+    """Compute exact bounding box center, optimal zoom, and camera bearing.
 
-    The bearing aligns Direction 1 of the route horizontally across the wide
-    map card (start terminus on the left, end terminus on the right). It uses
-    the signed start-to-end heading (clockwise from True North) minus 90 deg —
-    unambiguous, unlike PCA (which is invariant to 180-deg flips).
+    Projects all route coordinates into the rotated screen frame so that
+    Direction 1 flows horizontally across the card (left to right) and the
+    ENTIRE line fits comfortably within the viewport with comfortable padding.
     """
     shapes = line_shapes.loc[line_shapes.line_sn.astype(str) == str(line)]
-    if not shapes.empty:
-        center_x = float(shapes.lon.mean())
-        center_y = float(shapes.lat.mean())
-        d1 = shapes[shapes.direction == 1]
-        if len(d1) >= 2:
-            st_lat, st_lon = float(d1.iloc[0].lat), float(d1.iloc[0].lon)
-            en_lat, en_lon = float(d1.iloc[-1].lat), float(d1.iloc[-1].lon)
-        else:
-            st_lat, st_lon = float(shapes.iloc[0].lat), float(shapes.iloc[0].lon)
-            en_lat, en_lon = float(shapes.iloc[-1].lat), float(shapes.iloc[-1].lon)
+    if shapes.empty:
+        center_x, center_y = (-0.1278, 51.5074) if location == "London" else (-3.7038, 40.4168)
+        return center_x, center_y, 12.0, 0.0
 
-        lat_mid = (st_lat + en_lat) / 2.0 * math.pi / 180.0
-        dx = (en_lon - st_lon) * math.cos(lat_mid)
-        dy = en_lat - st_lat
-        heading = (math.degrees(math.atan2(dx, dy))) % 360.0
-        bearing = (heading - 90.0) % 360.0
-        if bearing > 180.0:
-            bearing -= 360.0
+    # 1. Heading of Direction 1 (start -> end)
+    d1 = shapes.loc[shapes.direction == 1]
+    if len(d1) >= 2:
+        st_lat, st_lon = float(d1.iloc[0].lat), float(d1.iloc[0].lon)
+        en_lat, en_lon = float(d1.iloc[-1].lat), float(d1.iloc[-1].lon)
     else:
-        center_x, center_y = (-3.7038, 40.4168)
-        bearing = 0.0
+        st_lat, st_lon = float(shapes.iloc[0].lat), float(shapes.iloc[0].lon)
+        en_lat, en_lon = float(shapes.iloc[-1].lat), float(shapes.iloc[-1].lon)
 
-    zoom = float(zooms.get(str(line), 12.0))
-    return center_x, center_y, zoom, round(bearing, 1)
+    lat_mid = (st_lat + en_lat) / 2.0 * math.pi / 180.0
+    dx = (en_lon - st_lon) * math.cos(lat_mid)
+    dy = en_lat - st_lat
+    heading = (math.degrees(math.atan2(dx, dy))) % 360.0
+    bearing = (heading - 90.0) % 360.0
+    if bearing > 180.0:
+        bearing -= 360.0
+
+    # 2. Mean anchor
+    mean_lat = float(shapes.lat.mean())
+    mean_lon = float(shapes.lon.mean())
+
+    # 3. Project all points into rotated coordinate frame (in km)
+    theta = math.radians(bearing)
+    cos_theta = math.cos(theta)
+    sin_theta = math.sin(theta)
+
+    x_kms = (shapes.lon.to_numpy() - mean_lon) * math.cos(math.radians(mean_lat)) * 111.32
+    y_kms = (shapes.lat.to_numpy() - mean_lat) * 111.32
+
+    xs_rot = x_kms * cos_theta - y_kms * sin_theta
+    ys_rot = x_kms * sin_theta + y_kms * cos_theta
+
+    min_x, max_x = float(xs_rot.min()), float(xs_rot.max())
+    min_y, max_y = float(ys_rot.min()), float(ys_rot.max())
+    span_x_km = max(max_x - min_x, 0.5)
+    span_y_km = max(max_y - min_y, 0.5)
+
+    # 4. True center in rotated frame -> unrotated (lat, lon)
+    mid_x_rot = (min_x + max_x) / 2.0
+    mid_y_rot = (min_y + max_y) / 2.0
+    mid_x_km = mid_x_rot * cos_theta + mid_y_rot * sin_theta
+    mid_y_km = -mid_x_rot * sin_theta + mid_y_rot * cos_theta
+
+    center_lon = mean_lon + mid_x_km / (math.cos(math.radians(mean_lat)) * 111.32)
+    center_lat = mean_lat + mid_y_km / 111.32
+
+    # 5. Optimal zoom so whole line fits with margin
+    eff_w = container_w * (1.0 - margin)
+    eff_h = container_h * (1.0 - margin)
+    world_circumference_km = 40075.0 * math.cos(math.radians(center_lat))
+
+    zoom_x = math.log2((eff_w * world_circumference_km) / (256.0 * span_x_km))
+    zoom_y = math.log2((eff_h * world_circumference_km) / (256.0 * span_y_km))
+    optimal_zoom = min(zoom_x, zoom_y)
+    optimal_zoom = round(max(10.2, min(14.0, optimal_zoom)), 2)
+
+    return round(center_lon, 5), round(center_lat, 5), optimal_zoom, round(bearing, 1)
 
 
 def build_map(line_df, line="1", theme="dark"):
