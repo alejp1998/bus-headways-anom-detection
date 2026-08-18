@@ -1584,15 +1584,18 @@ def update_buses_position(n_intervals, pathname, theme="dark"):
     return [build_map(line_burst, line, theme=theme)]
 
 
-# CALLBACK 1 - Active Route Pills & Tab Title (Styled with dot & bus icon)
+# CALLBACK 1 - Active Route Pills & Tab Title (Updates live on every 5s tick)
 @app.callback(
     [
         Output("route-pills-container" + location, "children"),
         Output("tab-title" + location, "children"),
     ],
-    [Input("url", "pathname")],
+    [
+        Input("interval-component" + location, "n_intervals"),
+        Input("url", "pathname"),
+    ],
 )
-def update_active_route_pills(pathname):
+def update_active_route_pills(n_intervals, pathname):
     active_line = (
         pathname.split("/")[-1]
         if (pathname and len(pathname.split("/")) > 2)
