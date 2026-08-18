@@ -524,7 +524,7 @@ def _read_db(name, line):
     elif name == "hws_burst":
         df = db.get_latest_headways_df("London", str(line) if line else None)
     elif name == "series":
-        df = db.get_series_df("London", str(line) if line else "25", dim=None, limit=60)
+        df = db.get_series_df("London", str(line) if line else "25", dim=None, limit=500)
     elif name == "anomalies":
         df = db.get_anomalies_df("London", str(line) if line else "25", limit=100)
     else:
@@ -1152,8 +1152,11 @@ def build_2d_time_series_graph(series_df, model, conf):
     )
 
     for (b1, b2, b3), group_df in series_df.groupby(["bus1", "bus2", "bus3"], sort=False):
+        group_df = group_df.sort_values("datetime")
         name = f"{b1}-{b2}-{b3}"
         color = get_group_color(b1, b2)
+
+        # 1. Continuous dynamic trajectory line over time
         graph.add_trace(
             go.Scatter(
                 name=name,
@@ -1161,11 +1164,27 @@ def build_2d_time_series_graph(series_df, model, conf):
                 y=group_df.hw23,
                 mode="lines+markers",
                 line={"width": 2, "color": color},
-                marker={"size": 6, "color": color},
+                marker={"size": 4.5, "color": color},
                 showlegend=False,
                 text=[
                     f"<b>Triplet: {name}</b><br>HW12: {row.hw12:.0f}s | HW23: {row.hw23:.0f}s<br>Time: {str(row.datetime)[:19]}"
                     for row in group_df.itertuples()
+                ],
+                hoverinfo="text",
+            )
+        )
+
+        # 2. Current head marker (latest point in trajectory)
+        graph.add_trace(
+            go.Scatter(
+                name=name,
+                x=[group_df.hw12.iloc[-1]],
+                y=[group_df.hw23.iloc[-1]],
+                mode="markers",
+                marker={"size": 8.5, "color": color, "line": {"color": "#FFFFFF", "width": 1.5}},
+                showlegend=False,
+                text=[
+                    f"<b>Current Head: {name}</b><br>Latest HW: [{group_df.hw12.iloc[-1]:.0f}s, {group_df.hw23.iloc[-1]:.0f}s]<br>Time: {str(group_df.datetime.iloc[-1])[:19]}"
                 ],
                 hoverinfo="text",
             )

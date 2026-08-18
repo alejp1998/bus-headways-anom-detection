@@ -430,7 +430,7 @@ def get_latest_headways_df(city: str, line: str | None = None) -> pd.DataFrame:
         return pd.read_sql_query(query, conn, params=params)
 
 
-def get_series_df(city: str, line: str, dim: int | None = 1, limit: int = 60) -> pd.DataFrame:
+def get_series_df(city: str, line: str, dim: int | None = None, limit: int = 500) -> pd.DataFrame:
     """Retrieve recent multi-dimensional headway time series."""
     query = """
         SELECT line, dim, m_dist, is_anomaly AS anom,
