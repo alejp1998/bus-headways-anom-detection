@@ -882,7 +882,7 @@ def build_map(line_df, line="1", theme="dark"):
         margin={"r": 0, "l": 0, "t": 0, "b": 0},
         hovermode="closest",
         showlegend=False,
-        uirevision=f"corridor_v5_{location}_{line}",
+        uirevision=f"map_v5_{location}_{line}_{zoom}",
         hoverlabel={
             "bgcolor": hover_bg,
             "bordercolor": "rgba(139, 92, 246, 0.8)",
@@ -898,7 +898,7 @@ def build_map(line_df, line="1", theme="dark"):
             "pitch": 0,
             "zoom": zoom,
             "style": map_style,
-            "uirevision": str(line),
+            "uirevision": f"map_v5_{location}_{line}_{zoom}",
         },
     )
 

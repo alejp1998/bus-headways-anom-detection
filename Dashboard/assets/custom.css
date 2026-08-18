@@ -1037,3 +1037,22 @@ h6,
   color: var(--text-main);
   white-space: nowrap;
 }
+
+/* Seamless in-place graph updates: zero flash, zero dimming, zero layout flicker */
+[data-dash-is-loading="true"],
+[data-dash-is-loading="true"] * {
+  opacity: 1 !important;
+  transition: none !important;
+  filter: none !important;
+}
+
+._dash-loading-callback {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.dash-graph,
+.js-plotly-plot {
+  transition: none !important;
+}

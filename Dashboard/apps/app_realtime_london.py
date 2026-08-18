@@ -878,14 +878,14 @@ def build_map(line_df, line="25", theme="dark"):
             "y": 0.98,
             "bgcolor": "rgba(15,23,42,0.75)" if dark else "rgba(255,255,255,0.85)",
         },
-        uirevision=f"corridor_v5_{location}_{line}",
+        uirevision=f"map_v5_{location}_{line}_{zoom}",
         map={
             "bearing": bearing,
             "center": {"lat": center_y, "lon": center_x},
             "pitch": 0,
             "zoom": zoom,
             "style": map_style,
-            "uirevision": str(line),
+            "uirevision": f"map_v5_{location}_{line}_{zoom}",
         },
     )
 
