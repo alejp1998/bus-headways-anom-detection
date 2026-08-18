@@ -791,17 +791,17 @@ mapbox_light_style = "light" if mapbox_access_token else "carto-positron"
 zooms = {"18": 12.0, "24": 12.6, "25": 11.8, "73": 12.2}
 
 
-def calc_map_params(line="25", container_w=740, container_h=370, margin=0.38):
-    """Compute exact bounding box center, optimal zoom, and camera bearing.
+def calc_map_params(line="25"):
+    """Compute bounding box center, optimal zoom, and camera bearing.
 
-    Projects all route coordinates into the rotated screen frame so that
-    Direction 1 flows horizontally across the card (left to right) and the
-    ENTIRE line fits comfortably within the viewport with comfortable padding.
+    Ensures the ENTIRE bus line fits comfortably inside the map card with
+    generous margins on left, right, top, and bottom so no stops or vehicles
+    are clipped or cut off by card edges.
     """
     shapes = line_shapes.loc[line_shapes.line_sn.astype(str) == str(line)]
     if shapes.empty:
         center_x, center_y = (-0.1278, 51.5074) if location == "London" else (-3.7038, 40.4168)
-        return center_x, center_y, 12.0, 0.0
+        return center_x, center_y, 10.8, 0.0
 
     # 1. Heading of Direction 1 (start -> end)
     d1 = shapes.loc[shapes.direction == 1]
@@ -849,15 +849,14 @@ def calc_map_params(line="25", container_w=740, container_h=370, margin=0.38):
     center_lon = mean_lon + mid_x_km / (math.cos(math.radians(mean_lat)) * 111.32)
     center_lat = mean_lat + mid_y_km / 111.32
 
-    # 5. Optimal zoom so whole line fits with margin
-    eff_w = container_w * (1.0 - margin)
-    eff_h = container_h * (1.0 - margin)
+    # 5. Targeted Zoom: use 420px effective width & 200px effective height
+    # so the route occupies at most ~55% of the card area, leaving ~22%
+    # generous empty margin on EACH side of the route line!
     world_circumference_km = 40075.0 * math.cos(math.radians(center_lat))
-
-    zoom_x = math.log2((eff_w * world_circumference_km) / (256.0 * span_x_km))
-    zoom_y = math.log2((eff_h * world_circumference_km) / (256.0 * span_y_km))
+    zoom_x = math.log2((420.0 * world_circumference_km) / (256.0 * span_x_km))
+    zoom_y = math.log2((200.0 * world_circumference_km) / (256.0 * span_y_km))
     optimal_zoom = min(zoom_x, zoom_y)
-    optimal_zoom = round(max(10.2, min(14.0, optimal_zoom)), 2)
+    optimal_zoom = round(max(9.2, min(13.2, optimal_zoom)), 2)
 
     return round(center_lon, 5), round(center_lat, 5), optimal_zoom, round(bearing, 1)
 
