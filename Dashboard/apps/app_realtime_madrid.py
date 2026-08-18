@@ -114,417 +114,415 @@ with open(resolve_path(location + "/Data/Static/lines_dict.json")) as f:
 with open(resolve_path(location + "/Data/Anomalies/models_params.json")) as f:
     models_params_dict = json.load(f)
 
-layout = html.Div(
-    className="cockpit-view",
-    children=[
-        # ---- Executive Control & Parameters Toolbar ----
-        html.Div(
-            className="modern-card no-hover",
-            style={"padding": "1.25rem 1.5rem", "marginBottom": "1.25rem"},
-            children=[
-                # Top Row: Title, Route Pills, Action Buttons
-                html.Div(
-                    className="flex-between flex-wrap",
-                    style={"gap": "1rem", "marginBottom": "1rem"},
-                    children=[
-                        html.Div(
-                            className="flex-gap flex-wrap",
-                            children=[
-                                html.H1(
-                                    "Madrid Transit Monitor",
-                                    style={"fontSize": "1.55rem", "margin": 0, "fontWeight": "700"},
-                                ),
-                                html.Span(
-                                    [html.Span(className="pulse-indicator"), " LIVE"],
-                                    className="badge-pill success",
-                                    style={"fontSize": "0.7rem"},
-                                ),
-                                html.Span(
-                                    id="tab-title" + location,
-                                    style={
-                                        "fontSize": "0.92rem",
-                                        "color": "var(--text-muted)",
-                                        "fontFamily": "var(--font-mono)",
-                                    },
-                                ),
-                            ],
-                        ),
-                        html.Div(
-                            className="flex-gap flex-wrap",
-                            children=[
-                                html.Div(
-                                    id="route-pills-container" + location,
-                                    className="flex-gap flex-wrap",
-                                    children=[
-                                        dcc.Link(
-                                            "Line 1",
-                                            href="/realtime/madrid/1",
-                                            className="route-pill",
-                                        ),
-                                        dcc.Link(
-                                            "Line 44",
-                                            href="/realtime/madrid/44",
-                                            className="route-pill",
-                                        ),
-                                        dcc.Link(
-                                            "Line 82",
-                                            href="/realtime/madrid/82",
-                                            className="route-pill",
-                                        ),
-                                        dcc.Link(
-                                            "Line 132",
-                                            href="/realtime/madrid/132",
-                                            className="route-pill",
-                                        ),
-                                        dcc.Link(
-                                            "Line 133",
-                                            href="/realtime/madrid/133",
-                                            className="route-pill",
-                                        ),
-                                        dcc.Link(
-                                            "Line F",
-                                            href="/realtime/madrid/F",
-                                            className="route-pill",
-                                        ),
-                                        dcc.Link(
-                                            "Line G",
-                                            href="/realtime/madrid/G",
-                                            className="route-pill",
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        ),
-                    ],
-                ),
-                # Bottom Row: Responsive Sliders & Model Baseline Bar
-                html.Div(
+
+def get_layout(active_line="1"):
+    lines_avail = (
+        ["1", "44", "82", "132", "133", "F", "G"]
+        if location == "Madrid"
+        else ["18", "24", "25", "73"]
+    )
+    initial_pills = [
+        dcc.Link(
+            [
+                html.Span(className="pill-dot"),
+                html.I(
+                    className="fa-solid fa-bus",
                     style={
-                        "borderTop": "1px solid var(--border-color)",
-                        "paddingTop": "0.85rem",
-                        "display": "flex",
-                        "alignItems": "center",
-                        "justifyContent": "space-between",
-                        "flexWrap": "wrap",
-                        "gap": "1.25rem",
+                        "fontSize": "0.75rem",
+                        "opacity": "1" if str(r_id) == str(active_line) else "0.8",
                     },
-                    children=[
-                        # Slider 1: Confidence
-                        html.Div(
-                            style={
-                                "flex": "1 1 200px",
-                                "minWidth": "160px",
-                                "maxWidth": "300px",
-                                "padding": "0 10px",
-                            },
-                            children=[
-                                html.Div(
-                                    className="flex-between",
-                                    style={"marginBottom": "0.2rem"},
-                                    children=[
-                                        html.Label(
-                                            [
-                                                html.I(
-                                                    className="fa-solid fa-sliders",
-                                                    style={
-                                                        "marginRight": "0.4rem",
-                                                        "color": "var(--primary-color)",
-                                                    },
-                                                ),
-                                                "Confidence (1 - α)",
-                                            ],
-                                            style={"fontSize": "0.82rem", "fontWeight": "600"},
-                                        ),
-                                        html.Span(
-                                            "Anomaly Threshold",
-                                            style={
-                                                "fontSize": "0.75rem",
-                                                "color": "var(--text-muted)",
-                                            },
-                                        ),
-                                    ],
-                                ),
-                                dcc.Slider(
-                                    id="conf-slider" + location,
-                                    min=90,
-                                    max=100,
-                                    step=0.05,
-                                    value=98,
-                                    marks={i: f"{i}%" for i in range(90, 101, 2)},
-                                ),
-                            ],
-                        ),
-                        # Slider 2: Size Threshold
-                        html.Div(
-                            style={
-                                "flex": "1 1 200px",
-                                "minWidth": "160px",
-                                "maxWidth": "300px",
-                                "padding": "0 10px",
-                            },
-                            children=[
-                                html.Div(
-                                    className="flex-between",
-                                    style={"marginBottom": "0.2rem"},
-                                    children=[
-                                        html.Label(
-                                            [
-                                                html.I(
-                                                    className="fa-solid fa-filter",
-                                                    style={
-                                                        "marginRight": "0.4rem",
-                                                        "color": "var(--accent-color)",
-                                                    },
-                                                ),
-                                                "Filter Window (k)",
-                                            ],
-                                            style={"fontSize": "0.82rem", "fontWeight": "600"},
-                                        ),
-                                        html.Span(
-                                            "Consecutive Ticks",
-                                            style={
-                                                "fontSize": "0.75rem",
-                                                "color": "var(--text-muted)",
-                                            },
-                                        ),
-                                    ],
-                                ),
-                                dcc.Slider(
-                                    id="size-th-slider" + location,
-                                    min=1,
-                                    max=15,
-                                    step=1,
-                                    value=5,
-                                    marks={i: str(i) for i in range(1, 16, 2)},
-                                ),
-                            ],
-                        ),
-                        # Model Badge & Info
-                        html.Div(
-                            className="flex-gap",
-                            style={"flex": "0 1 auto"},
-                            children=[
-                                html.Span(
-                                    [
-                                        html.I(
-                                            className="fa-solid fa-chart-pie",
-                                            style={"marginRight": "0.35rem"},
-                                        ),
-                                        "Gaussian d≤3",
-                                    ],
-                                    className="badge-pill primary",
-                                    style={"fontSize": "0.72rem"},
-                                    title="Multivariate Gaussian distribution with Mahalanobis distance metric",
-                                ),
-                            ],
-                        ),
-                    ],
                 ),
+                f"Line {r_id}",
             ],
-        ),
-        # ---- Hidden State & Polling ----
-        html.Div(id="hidden-div" + location, style={"display": "none"}),
-        dcc.Interval(id="interval-component" + location, interval=15000, n_intervals=0),
-        # ---- KPI Cards ----
-        html.Div(
-            className="grid-4",
-            style={"marginBottom": "1.5rem"},
-            children=[
-                html.Div(
-                    className="kpi-card",
-                    children=[
-                        html.Div(
-                            className="flex-between",
-                            children=[
-                                html.Span("Active Fleet", className="kpi-label"),
-                                html.I(
-                                    className="fa-solid fa-bus",
-                                    style={"color": "var(--primary-color)"},
-                                ),
-                            ],
-                        ),
-                        html.Div(id="kpi-fleetMadrid", className="kpi-val", children="—"),
-                        html.Span("Vehicles reporting", className="kpi-sub"),
-                    ],
-                ),
-                html.Div(
-                    className="kpi-card",
-                    children=[
-                        html.Div(
-                            className="flex-between",
-                            children=[
-                                html.Span("Mean Headway", className="kpi-label"),
-                                html.I(
-                                    className="fa-solid fa-clock",
-                                    style={"color": "var(--accent-color)"},
-                                ),
-                            ],
-                        ),
-                        html.Div(id="kpi-headwayMadrid", className="kpi-val", children="—"),
-                        html.Span("Avg gap between buses", className="kpi-sub"),
-                    ],
-                ),
-                html.Div(
-                    className="kpi-card",
-                    children=[
-                        html.Div(
-                            className="flex-between",
-                            children=[
-                                html.Span("QoS Regularity", className="kpi-label"),
-                                html.I(
-                                    className="fa-solid fa-gauge-high", style={"color": "#10B981"}
-                                ),
-                            ],
-                        ),
-                        html.Div(id="kpi-qosMadrid", className="kpi-val", children="—"),
-                        html.Span("Service regularity index", className="kpi-sub"),
-                    ],
-                ),
-                html.Div(
-                    className="kpi-card",
-                    children=[
-                        html.Div(
-                            className="flex-between",
-                            children=[
-                                html.Span("Anomalies", className="kpi-label"),
-                                html.I(
-                                    className="fa-solid fa-triangle-exclamation",
-                                    style={"color": "var(--danger-color)"},
-                                ),
-                            ],
-                        ),
-                        html.Div(id="kpi-anomsMadrid", className="kpi-val", children="—"),
-                        html.Span("Detected in current window", className="kpi-sub"),
-                    ],
-                ),
-            ],
-        ),
-        # ---- Main Workspace: Map + Headway Corridor ----
-        html.Div(
-            className="workspace-grid",
-            children=[
-                html.Div(
-                    className="modern-card no-hover",
-                    style={"padding": "1rem"},
-                    children=[
-                        html.Div(
-                            className="flex-between",
-                            style={"marginBottom": "0.6rem"},
-                            children=[
-                                html.H3(
-                                    "Fleet Spatial Map", style={"fontSize": "1.1rem", "margin": 0}
-                                ),
-                                html.Span(
-                                    "Live positions",
-                                    className="badge-pill primary",
-                                    style={"fontSize": "0.65rem"},
-                                ),
-                            ],
-                        ),
-                        dcc.Graph(
-                            id="map" + location,
-                            style={"height": "52vh"},
-                            figure=go.Figure(),
-                            config={"displayModeBar": False, "scrollZoom": True},
-                        ),
-                    ],
-                ),
-                html.Div(
-                    className="modern-card no-hover",
-                    style={"padding": "1rem"},
-                    children=[
-                        html.Div(
-                            className="flex-between",
-                            style={"marginBottom": "0.6rem"},
-                            children=[
-                                html.H3(
-                                    "Headway Corridor", style={"fontSize": "1.1rem", "margin": 0}
-                                ),
-                                html.Span(
-                                    "Bunching risk view",
-                                    className="badge-pill warning",
-                                    style={"fontSize": "0.65rem"},
-                                ),
-                            ],
-                        ),
-                        dcc.Graph(
-                            id="flat-hws" + location,
-                            style={"height": "52vh"},
-                            figure=go.Figure(),
-                            clear_on_unhover=True,
-                            config={"displayModeBar": False},
-                        ),
-                    ],
-                ),
-            ],
-        ),
-        # ---- Analytics Tabs ----
-        html.Div(
-            className="modern-card no-hover",
-            style={"padding": "1rem", "marginTop": "1.5rem"},
-            children=[
-                dcc.Tabs(
-                    id="analytics-tabs" + location,
-                    value="ts1" + location,
-                    className="custom-tabs-container",
-                    children=[
-                        dcc.Tab(
-                            label="Headway Time Series (1D)",
-                            value="ts1" + location,
-                            className="custom-tab",
-                            selected_className="custom-tab--selected",
-                        ),
-                        dcc.Tab(
-                            label="Headway Dynamics (2D)",
-                            value="ts2" + location,
-                            className="custom-tab",
-                            selected_className="custom-tab--selected",
-                        ),
-                        dcc.Tab(
-                            label="Mahalanobis Distance (σ)",
-                            value="md" + location,
-                            className="custom-tab",
-                            selected_className="custom-tab--selected",
-                        ),
-                        dcc.Tab(
-                            label="Anomaly Events",
-                            value="an" + location,
-                            className="custom-tab",
-                            selected_className="custom-tab--selected",
-                        ),
-                    ],
-                ),
-                html.Div(
-                    style={"marginTop": "0.5rem"},
-                    children=[
-                        dcc.Graph(
-                            id="time-series-hws" + location,
-                            style={"display": "block", "height": "100%", "width": "100%"},
-                            figure=go.Figure(),
-                            config={"displayModeBar": False},
-                        ),
-                        dcc.Graph(
-                            id="2d-time-series-hws" + location,
-                            style={"display": "none"},
-                            figure=go.Figure(),
-                            config={"displayModeBar": False},
-                        ),
-                        dcc.Graph(
-                            id="mdist-hws" + location,
-                            style={"display": "none"},
-                            figure=go.Figure(),
-                            config={"displayModeBar": False},
-                        ),
-                        html.Div(
-                            id="anom-hws-div" + location,
-                            style={"display": "none"},
-                        ),
-                    ],
-                ),
-            ],
-        ),
-    ],
-)
+            href=f"/realtime/{location.lower()}/{r_id}",
+            className="route-pill active" if str(r_id) == str(active_line) else "route-pill",
+        )
+        for r_id in lines_avail
+    ]
+    return html.Div(
+        className="cockpit-view",
+        children=[
+            # ---- Executive Control & Parameters Toolbar ----
+            html.Div(
+                className="modern-card no-hover",
+                style={"padding": "1.25rem 1.5rem", "marginBottom": "1.25rem"},
+                children=[
+                    # Top Row: Title, Route Pills, Action Buttons
+                    html.Div(
+                        className="flex-between flex-wrap",
+                        style={"gap": "1rem", "marginBottom": "1rem"},
+                        children=[
+                            html.Div(
+                                className="flex-gap flex-wrap",
+                                children=[
+                                    html.H1(
+                                        "Madrid Transit Monitor",
+                                        style={
+                                            "fontSize": "1.55rem",
+                                            "margin": 0,
+                                            "fontWeight": "700",
+                                        },
+                                    ),
+                                    html.Span(
+                                        [html.Span(className="pulse-indicator"), " LIVE"],
+                                        className="badge-pill success",
+                                        style={"fontSize": "0.7rem"},
+                                    ),
+                                    html.Span(
+                                        id="tab-title" + location,
+                                        style={
+                                            "fontSize": "0.92rem",
+                                            "color": "var(--text-muted)",
+                                            "fontFamily": "var(--font-mono)",
+                                        },
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                className="flex-gap flex-wrap",
+                                children=[
+                                    html.Div(
+                                        id="route-pills-container" + location,
+                                        className="route-pills-wrapper",
+                                        children=initial_pills,
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    # Bottom Row: Responsive Sliders & Model Baseline Bar
+                    html.Div(
+                        style={
+                            "borderTop": "1px solid var(--border-color)",
+                            "paddingTop": "0.85rem",
+                            "display": "flex",
+                            "alignItems": "center",
+                            "justifyContent": "space-between",
+                            "flexWrap": "wrap",
+                            "gap": "1.25rem",
+                        },
+                        children=[
+                            # Slider 1: Confidence
+                            html.Div(
+                                style={
+                                    "flex": "1 1 200px",
+                                    "minWidth": "160px",
+                                    "maxWidth": "300px",
+                                    "padding": "0 10px",
+                                },
+                                children=[
+                                    html.Div(
+                                        className="flex-between",
+                                        style={"marginBottom": "0.2rem"},
+                                        children=[
+                                            html.Label(
+                                                [
+                                                    html.I(
+                                                        className="fa-solid fa-sliders",
+                                                        style={
+                                                            "marginRight": "0.4rem",
+                                                            "color": "var(--primary-color)",
+                                                        },
+                                                    ),
+                                                    "Confidence (1 - α)",
+                                                ],
+                                                style={"fontSize": "0.82rem", "fontWeight": "600"},
+                                            ),
+                                            html.Span(
+                                                "Anomaly Threshold",
+                                                style={
+                                                    "fontSize": "0.75rem",
+                                                    "color": "var(--text-muted)",
+                                                },
+                                            ),
+                                        ],
+                                    ),
+                                    dcc.Slider(
+                                        id="conf-slider" + location,
+                                        min=90,
+                                        max=100,
+                                        step=0.05,
+                                        value=98,
+                                        marks={i: f"{i}%" for i in range(90, 101, 2)},
+                                    ),
+                                ],
+                            ),
+                            # Slider 2: Size Threshold
+                            html.Div(
+                                style={
+                                    "flex": "1 1 200px",
+                                    "minWidth": "160px",
+                                    "maxWidth": "300px",
+                                    "padding": "0 10px",
+                                },
+                                children=[
+                                    html.Div(
+                                        className="flex-between",
+                                        style={"marginBottom": "0.2rem"},
+                                        children=[
+                                            html.Label(
+                                                [
+                                                    html.I(
+                                                        className="fa-solid fa-filter",
+                                                        style={
+                                                            "marginRight": "0.4rem",
+                                                            "color": "var(--accent-color)",
+                                                        },
+                                                    ),
+                                                    "Filter Window (k)",
+                                                ],
+                                                style={"fontSize": "0.82rem", "fontWeight": "600"},
+                                            ),
+                                            html.Span(
+                                                "Consecutive Ticks",
+                                                style={
+                                                    "fontSize": "0.75rem",
+                                                    "color": "var(--text-muted)",
+                                                },
+                                            ),
+                                        ],
+                                    ),
+                                    dcc.Slider(
+                                        id="size-th-slider" + location,
+                                        min=1,
+                                        max=15,
+                                        step=1,
+                                        value=5,
+                                        marks={i: str(i) for i in range(1, 16, 2)},
+                                    ),
+                                ],
+                            ),
+                            # Model Badge & Info
+                            html.Div(
+                                className="flex-gap",
+                                style={"flex": "0 1 auto"},
+                                children=[
+                                    html.Span(
+                                        [
+                                            html.I(
+                                                className="fa-solid fa-chart-pie",
+                                                style={"marginRight": "0.35rem"},
+                                            ),
+                                            "Gaussian d≤3",
+                                        ],
+                                        className="badge-pill primary",
+                                        style={"fontSize": "0.72rem"},
+                                        title="Multivariate Gaussian distribution with Mahalanobis distance metric",
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            # ---- Hidden State & Polling ----
+            html.Div(id="hidden-div" + location, style={"display": "none"}),
+            dcc.Interval(id="interval-component" + location, interval=15000, n_intervals=0),
+            # ---- KPI Cards ----
+            html.Div(
+                className="grid-4",
+                style={"marginBottom": "1.5rem"},
+                children=[
+                    html.Div(
+                        className="kpi-card",
+                        children=[
+                            html.Div(
+                                className="flex-between",
+                                children=[
+                                    html.Span("Active Fleet", className="kpi-label"),
+                                    html.I(
+                                        className="fa-solid fa-bus",
+                                        style={"color": "var(--primary-color)"},
+                                    ),
+                                ],
+                            ),
+                            html.Div(id="kpi-fleetMadrid", className="kpi-val", children="—"),
+                            html.Span("Vehicles reporting", className="kpi-sub"),
+                        ],
+                    ),
+                    html.Div(
+                        className="kpi-card",
+                        children=[
+                            html.Div(
+                                className="flex-between",
+                                children=[
+                                    html.Span("Mean Headway", className="kpi-label"),
+                                    html.I(
+                                        className="fa-solid fa-clock",
+                                        style={"color": "var(--accent-color)"},
+                                    ),
+                                ],
+                            ),
+                            html.Div(id="kpi-headwayMadrid", className="kpi-val", children="—"),
+                            html.Span("Avg gap between buses", className="kpi-sub"),
+                        ],
+                    ),
+                    html.Div(
+                        className="kpi-card",
+                        children=[
+                            html.Div(
+                                className="flex-between",
+                                children=[
+                                    html.Span("QoS Regularity", className="kpi-label"),
+                                    html.I(
+                                        className="fa-solid fa-gauge-high",
+                                        style={"color": "#10B981"},
+                                    ),
+                                ],
+                            ),
+                            html.Div(id="kpi-qosMadrid", className="kpi-val", children="—"),
+                            html.Span("Service regularity index", className="kpi-sub"),
+                        ],
+                    ),
+                    html.Div(
+                        className="kpi-card",
+                        children=[
+                            html.Div(
+                                className="flex-between",
+                                children=[
+                                    html.Span("Anomalies", className="kpi-label"),
+                                    html.I(
+                                        className="fa-solid fa-triangle-exclamation",
+                                        style={"color": "var(--danger-color)"},
+                                    ),
+                                ],
+                            ),
+                            html.Div(id="kpi-anomsMadrid", className="kpi-val", children="—"),
+                            html.Span("Detected in current window", className="kpi-sub"),
+                        ],
+                    ),
+                ],
+            ),
+            # ---- Main Workspace: Map + Headway Corridor ----
+            html.Div(
+                className="workspace-grid",
+                children=[
+                    html.Div(
+                        className="modern-card no-hover",
+                        style={"padding": "1rem"},
+                        children=[
+                            html.Div(
+                                className="flex-between",
+                                style={"marginBottom": "0.6rem"},
+                                children=[
+                                    html.H3(
+                                        "Fleet Spatial Map",
+                                        style={"fontSize": "1.1rem", "margin": 0},
+                                    ),
+                                    html.Span(
+                                        "Live positions",
+                                        className="badge-pill primary",
+                                        style={"fontSize": "0.65rem"},
+                                    ),
+                                ],
+                            ),
+                            dcc.Graph(
+                                id="map" + location,
+                                style={"height": "52vh"},
+                                figure=go.Figure(),
+                                config={"displayModeBar": False, "scrollZoom": True},
+                            ),
+                        ],
+                    ),
+                    html.Div(
+                        className="modern-card no-hover",
+                        style={"padding": "1rem"},
+                        children=[
+                            html.Div(
+                                className="flex-between",
+                                style={"marginBottom": "0.6rem"},
+                                children=[
+                                    html.H3(
+                                        "Headway Corridor",
+                                        style={"fontSize": "1.1rem", "margin": 0},
+                                    ),
+                                    html.Span(
+                                        "Bunching risk view",
+                                        className="badge-pill warning",
+                                        style={"fontSize": "0.65rem"},
+                                    ),
+                                ],
+                            ),
+                            dcc.Graph(
+                                id="flat-hws" + location,
+                                style={"height": "52vh"},
+                                figure=go.Figure(),
+                                clear_on_unhover=True,
+                                config={"displayModeBar": False},
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            # ---- Analytics Tabs ----
+            html.Div(
+                className="modern-card no-hover",
+                style={"padding": "1rem", "marginTop": "1.5rem"},
+                children=[
+                    dcc.Tabs(
+                        id="analytics-tabs" + location,
+                        value="ts1" + location,
+                        className="custom-tabs-container",
+                        children=[
+                            dcc.Tab(
+                                label="Headway Time Series (1D)",
+                                value="ts1" + location,
+                                className="custom-tab",
+                                selected_className="custom-tab--selected",
+                            ),
+                            dcc.Tab(
+                                label="Headway Dynamics (2D)",
+                                value="ts2" + location,
+                                className="custom-tab",
+                                selected_className="custom-tab--selected",
+                            ),
+                            dcc.Tab(
+                                label="Mahalanobis Distance (σ)",
+                                value="md" + location,
+                                className="custom-tab",
+                                selected_className="custom-tab--selected",
+                            ),
+                            dcc.Tab(
+                                label="Anomaly Events",
+                                value="an" + location,
+                                className="custom-tab",
+                                selected_className="custom-tab--selected",
+                            ),
+                        ],
+                    ),
+                    html.Div(
+                        style={"marginTop": "0.5rem"},
+                        children=[
+                            dcc.Graph(
+                                id="time-series-hws" + location,
+                                style={"display": "block", "height": "100%", "width": "100%"},
+                                figure=go.Figure(),
+                                config={"displayModeBar": False},
+                            ),
+                            dcc.Graph(
+                                id="2d-time-series-hws" + location,
+                                style={"display": "none"},
+                                figure=go.Figure(),
+                                config={"displayModeBar": False},
+                            ),
+                            dcc.Graph(
+                                id="mdist-hws" + location,
+                                style={"display": "none"},
+                                figure=go.Figure(),
+                                config={"displayModeBar": False},
+                            ),
+                            html.Div(
+                                id="anom-hws-div" + location,
+                                style={"display": "none"},
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
+
 # MAPBOX CONFIGURATION (uses carto tiles if no token configured)
 mapbox_access_token = os.environ.get("MAPBOX_ACCESS_TOKEN", "")
 mapbox_style = "streets" if mapbox_access_token else "carto-darkmatter"
@@ -1493,6 +1491,9 @@ def _empty_figure(message):
     )
     fig.update_layout(theme_layout("dark"))
     return fig
+
+
+layout = get_layout()
 
 
 # CALLBACKS

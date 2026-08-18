@@ -177,7 +177,7 @@ def display_page(pathname):
         if pathname in ["/home", "/", None]:
             return app_home.layout
         elif pathname.startswith("/realtime/madrid"):
-            line = pathname.split("/")[-1] if len(pathname.split("/")) > 3 else ""
+            line = pathname.split("/")[-1] if len(pathname.split("/")) > 3 else "1"
             if line not in ["1", "44", "82", "132", "133", "F", "G"]:
                 return html.Div(
                     className="modern-card",
@@ -195,9 +195,9 @@ def display_page(pathname):
                         ),
                     ],
                 )
-            return app_realtime_madrid.layout
+            return app_realtime_madrid.get_layout(line)
         elif pathname.startswith("/realtime/london"):
-            line = pathname.split("/")[-1] if len(pathname.split("/")) > 3 else ""
+            line = pathname.split("/")[-1] if len(pathname.split("/")) > 3 else "25"
             if line not in ["18", "24", "25", "73"]:
                 return html.Div(
                     className="modern-card",
@@ -215,7 +215,7 @@ def display_page(pathname):
                         ),
                     ],
                 )
-            return app_realtime_london.layout
+            return app_realtime_london.get_layout(line)
         elif pathname == "/history":
             return app_history.layout
         elif pathname == "/credits":

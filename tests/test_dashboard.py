@@ -10,7 +10,7 @@ sys.path.insert(0, ROOT)
 from index import display_page
 
 from app import app
-from apps import app_credits, app_home, app_realtime_london, app_realtime_madrid
+from apps import app_credits, app_home
 
 
 def test_app_initialization():
@@ -33,15 +33,17 @@ def test_display_page_routing():
 
     # Test valid madrid
     madrid_layout = display_page("/realtime/madrid/1")
-    assert madrid_layout == app_realtime_madrid.layout
+    assert madrid_layout is not None
+    assert madrid_layout.className == "cockpit-view"
 
     # Test valid london
     london_layout = display_page("/realtime/london/18")
-    assert london_layout == app_realtime_london.layout
+    assert london_layout is not None
+    assert london_layout.className == "cockpit-view"
 
     # Test invalid line
     invalid_layout = display_page("/realtime/madrid/999")
-    assert invalid_layout != app_realtime_madrid.layout
+    assert "not currently active" in str(invalid_layout)
 
 
 def test_static_data_files():
