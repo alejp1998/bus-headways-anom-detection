@@ -102,7 +102,7 @@ with open(resolve_path(location + "/Data/Anomalies/models_params.json")) as f:
     models_params_dict = json.load(f)
 
 layout = html.Div(
-    className="",
+    className="cockpit-view",
     children=[
         # ---- Executive Control & Parameters Toolbar ----
         html.Div(

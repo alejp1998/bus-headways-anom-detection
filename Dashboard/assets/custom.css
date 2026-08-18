@@ -540,3 +540,187 @@ h6,
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
 }
+
+/* ==========================================================================
+   COCKPIT LAYOUT — desktop single-viewport fit (no scroll) for realtime pages
+   ========================================================================== */
+@media (min-width: 1280px) and (min-height: 700px) {
+  /* Only when a cockpit page is mounted, lock the viewport */
+  body:has(.cockpit-view) {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body:has(.cockpit-view) .app-navbar {
+    flex-shrink: 0;
+    padding: 0.5rem 1.5rem;
+  }
+
+  body:has(.cockpit-view) main {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0.6rem 1.25rem 0.4rem !important;
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    height: calc(100vh - 56px) !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body:has(.cockpit-view) footer {
+    display: none !important;
+  }
+
+  body:has(.cockpit-view) #react-entry-point,
+  body:has(.cockpit-view) #react-entry-point > div,
+  body:has(.cockpit-view) #page-content {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Dash's callback loading overlay must not participate in the flex layout */
+  body:has(.cockpit-view) ._dash-loading-callback {
+    display: none !important;
+  }
+
+  .cockpit-view {
+    flex: 1 1 0;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    overflow: hidden;
+  }
+
+  /* Toolbar card: compact, fixed */
+  .cockpit-view .modern-card {
+    padding: 0.7rem 1.1rem !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+  }
+  .cockpit-view .flex-between.flex-wrap {
+    margin-bottom: 0.45rem !important;
+  }
+  .cockpit-view h1 {
+    font-size: 1.2rem !important;
+  }
+
+  /* KPI strip: compact, fixed */
+  .cockpit-view .grid-4 {
+    flex-shrink: 0;
+    margin-bottom: 0 !important;
+    gap: 0.6rem;
+  }
+  .cockpit-view .kpi-card {
+    min-height: 62px;
+    padding: 0.55rem 0.9rem;
+    border-radius: 12px;
+  }
+  .cockpit-view .kpi-val {
+    font-size: 1.25rem;
+    margin: 0.15rem 0 0.05rem 0;
+  }
+  .cockpit-view .kpi-label {
+    font-size: 0.68rem;
+  }
+  .cockpit-view .kpi-sub {
+    font-size: 0.66rem;
+  }
+
+  /* Workspace: map + corridor row; analytics card below — both flex to fill */
+  .cockpit-view .workspace-grid {
+    flex: 1 1 50%;
+    min-height: 0;
+    margin-top: 0 !important;
+    gap: 0.6rem;
+    grid-template-columns: 1.1fr 1fr;
+  }
+
+  /* Each workspace card becomes a flex column with a growing graph */
+  .cockpit-view .workspace-grid .modern-card,
+  .cockpit-view .workspace-grid > div {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0.6rem 0.8rem !important;
+    margin: 0 !important;
+  }
+
+  /* Analytics card fills the remaining half */
+  .cockpit-view > .modern-card:last-of-type {
+    flex: 1 1 50%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0.6rem 0.8rem !important;
+  }
+  .cockpit-view > .modern-card:last-of-type .custom-tabs-container {
+    flex-shrink: 0;
+    margin-bottom: 0.4rem;
+  }
+  .cockpit-view > .modern-card:last-of-type > div:last-child {
+    flex: 1 1 0;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Graphs fill their containers (Plotly auto-resizes responsively) */
+  .cockpit-view .workspace-grid .dash-graph,
+  .cockpit-view .workspace-grid .js-plotly-plot,
+  .cockpit-view .workspace-grid .plot-container {
+    height: 100% !important;
+    min-height: 0;
+    flex: 1 1 0 !important;
+  }
+  .cockpit-view > .modern-card:last-of-type .dash-graph,
+  .cockpit-view > .modern-card:last-of-type .js-plotly-plot,
+  .cockpit-view > .modern-card:last-of-type .plot-container {
+    height: 100% !important;
+    min-height: 0;
+    flex: 1 1 0 !important;
+  }
+  .cockpit-view #mapLondon,
+  .cockpit-view #mapMadrid,
+  .cockpit-view #flat-hwsLondon,
+  .cockpit-view #flat-hwsMadrid,
+  .cockpit-view #time-series-hwsLondon,
+  .cockpit-view #time-series-hwsMadrid,
+  .cockpit-view #2d-time-series-hwsLondon,
+  .cockpit-view #2d-time-series-hwsMadrid,
+  .cockpit-view #mdist-hwsLondon,
+  .cockpit-view #mdist-hwsMadrid,
+  .cockpit-view #anom-hws-divLondon,
+  .cockpit-view #anom-hws-divMadrid {
+    height: 100% !important;
+    min-height: 0;
+  }
+
+  /* Hide the invisible tab panels from layout flow; keep them rendered */
+  .cockpit-view .dash-graph[style*="visibility: hidden"] {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100% !important;
+  }
+}
+
+/* ==========================================================================
+   COCKPIT LAYOUT — mobile/tablet keeps normal scrollable flow
+   ========================================================================== */
+@media (max-width: 1279px) {
+  .cockpit-view .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
