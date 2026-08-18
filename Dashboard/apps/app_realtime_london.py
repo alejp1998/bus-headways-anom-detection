@@ -437,25 +437,25 @@ layout = html.Div(
                     children=[
                         dcc.Graph(
                             id="time-series-hws" + location,
-                            style={"height": "52vh"},
+                            style={"display": "block", "height": "100%", "width": "100%"},
                             figure=go.Figure(),
                             config={"displayModeBar": False},
                         ),
                         dcc.Graph(
                             id="2d-time-series-hws" + location,
-                            style={"height": "52vh"},
+                            style={"display": "none"},
                             figure=go.Figure(),
                             config={"displayModeBar": False},
                         ),
                         dcc.Graph(
                             id="mdist-hws" + location,
-                            style={"height": "52vh"},
+                            style={"display": "none"},
                             figure=go.Figure(),
                             config={"displayModeBar": False},
                         ),
                         html.Div(
                             id="anom-hws-div" + location,
-                            style={"height": "52vh", "overflowY": "auto"},
+                            style={"display": "none"},
                         ),
                     ],
                 ),
@@ -883,7 +883,7 @@ def _draw_bus_nodes(graph, dir_hws, dest_label, dark, text_color):
                 textposition="bottom center",
                 textfont={"size": 9.5, "color": text_color, "family": "Space Grotesk, sans-serif"},
                 hoverinfo="text",
-                hovertext=f"<b>Bus {bus_id}</b><br>Headway: {hw:.0f}s ({round(hw / 60, 1)} min)<br>TTLS: {ttls:.0f}s ({ttls_min} min to terminus)<br>Corridor: {dest_label}",
+                hovertext=f"<b>Bus {bus_id}</b><br>Headway: {hw:.0f}s ({round(hw / 60, 1)} min)<br>TTLS: {ttls:.0f}s ({ttls_min} min to terminus)<br>Track: {dest_label}",
                 showlegend=False,
             )
         )
@@ -919,8 +919,10 @@ def build_graph(line_hws, theme="dark"):
 
     line = str(headways.line.iloc[0])
     destinations = lines_dict.get(line, {}).get("destinations", ["Inbound", "Outbound"])
-    dest1 = f"Dir 1: {destinations[0]}" if len(destinations) > 0 else "Direction 1"
-    dest2 = f"Dir 2: {destinations[1]}" if len(destinations) > 1 else "Direction 2"
+    d1_full = destinations[0] if len(destinations) > 0 else "Outbound"
+    d2_full = destinations[1] if len(destinations) > 1 else "Inbound"
+    dest1 = f"Dir 1 ({d1_full[:14]})"
+    dest2 = f"Dir 2 ({d2_full[:14]})"
 
     max_x = max_ttls.get(line, 4500)
     track_color = "rgba(255,255,255,0.12)" if dark else "rgba(0,0,0,0.12)"
@@ -931,20 +933,20 @@ def build_graph(line_hws, theme="dark"):
         template="plotly_dark" if dark else "plotly_white",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin={"r": 20, "l": 20, "t": 25, "b": 35},
+        margin={"r": 20, "l": 80, "t": 15, "b": 35},
         uirevision=str(line),
         showlegend=False,
         hovermode="closest",
         xaxis={
             "title": {
                 "text": "<b>Time to Terminal (TTLS)</b> → (Minutes from Arrival)",
-                "font": {"size": 11, "color": "#94A3B8"},
+                "font": {"size": 10, "color": "#94A3B8"},
             },
             "range": [-100, max_x + 200],
             "tickmode": "array",
             "tickvals": [0, 600, 1200, 1800, 2400, 3000, 3600, 4200, 4800, 5400, 6000],
             "ticktext": [
-                "0m (Terminus)",
+                "0m",
                 "10m",
                 "20m",
                 "30m",
@@ -959,6 +961,7 @@ def build_graph(line_hws, theme="dark"):
             "gridcolor": grid_color,
             "zeroline": True,
             "zerolinecolor": track_color,
+            "tickfont": {"size": 9.5, "color": "#94A3B8", "family": "JetBrains Mono, monospace"},
         },
         yaxis={
             "type": "category",
@@ -966,7 +969,7 @@ def build_graph(line_hws, theme="dark"):
             "categoryarray": [dest2, dest1],
             "showgrid": False,
             "zeroline": False,
-            "tickfont": {"size": 11, "color": text_color, "family": "Space Grotesk, sans-serif"},
+            "tickfont": {"size": 10.5, "color": text_color, "family": "Space Grotesk, sans-serif"},
         },
     )
 
@@ -1470,12 +1473,7 @@ def update_hyperparams(conf, size_th, pathname):
     except:  # noqa: E722
         pass
 
-    return [
-        html.H1(
-            f"Confidence set to {conf} and size threshold set to {size_th} in the next update",
-            className="box subtitle is-6",
-        )
-    ]
+    return [""]
 
 
 # CALLBACK 2 - Buses headways representation
@@ -1517,7 +1515,7 @@ def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
+def update_time_series_hws(n_intervals, n_clicks, pathname, theme="dark", hoverData=None):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
     cached = _cached_figure("ts1", line)
     if cached[1]:
@@ -1577,7 +1575,7 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="da
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
+def update_2d_time_series_hws(n_intervals, n_clicks, pathname, theme="dark", hoverData=None):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
     cached = _cached_figure("ts2", line)
     if cached[1]:
@@ -1631,7 +1629,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, hoverData, theme=
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_mdist_series(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
+def update_mdist_series(n_intervals, n_clicks, pathname, theme="dark", hoverData=None):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
     cached = _cached_figure("md", line)
     if cached[1]:
