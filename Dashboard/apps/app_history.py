@@ -114,10 +114,17 @@ layout = html.Div(
                                 ),
                                 # Week Selector Dropdown
                                 html.Div(
-                                    style={"minWidth": "220px"},
+                                    style={"minWidth": "340px"},
                                     children=[
                                         dcc.Dropdown(
                                             id="history-week-dropdown",
+                                            options=[
+                                                {
+                                                    "label": "Week 34 (Aug 17 – Aug 23, 2026) — 6,135 records",
+                                                    "value": "2026_W34",
+                                                }
+                                            ],
+                                            value="2026_W34",
                                             clearable=False,
                                             style={"fontSize": "0.88rem"},
                                         )
