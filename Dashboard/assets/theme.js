@@ -48,3 +48,27 @@
     updateButtons(initialTheme);
   });
 })();
+
+// Guide Modal Controls
+window.openGuideModal = function () {
+  const modal = document.getElementById("guide-modal-backdrop");
+  if (modal) {
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+};
+
+window.closeGuideModal = function () {
+  const modal = document.getElementById("guide-modal-backdrop");
+  if (modal) {
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+  }
+};
+
+// Close on Escape key
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") {
+    window.closeGuideModal();
+  }
+});

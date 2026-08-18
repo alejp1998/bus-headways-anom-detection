@@ -111,11 +111,6 @@ layout = html.Div(
                                     style={"fontSize": "1.2rem", "margin": 0, "fontWeight": "700"},
                                 ),
                                 html.Span(
-                                    [html.Span(className="pulse-indicator"), " LIVE"],
-                                    className="badge-pill success",
-                                    style={"fontSize": "0.68rem"},
-                                ),
-                                html.Span(
                                     id="tab-title" + location,
                                     style={
                                         "fontSize": "0.85rem",
