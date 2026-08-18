@@ -159,7 +159,7 @@ layout = html.Div(
                                         dcc.Link(
                                             "Line 1",
                                             href="/realtime/madrid/1",
-                                            className="route-pill active",
+                                            className="route-pill",
                                         ),
                                         dcc.Link(
                                             "Line 44",
