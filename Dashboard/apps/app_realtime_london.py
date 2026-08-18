@@ -406,7 +406,11 @@ def get_layout(active_line="25"):
                                 id="map" + location,
                                 style={"height": "100%", "width": "100%"},
                                 figure=go.Figure(),
-                                config={"displayModeBar": False},
+                                config={
+                                    "displayModeBar": False,
+                                    "scrollZoom": True,
+                                    "responsive": True,
+                                },
                             ),
                         ],
                     ),
@@ -433,7 +437,11 @@ def get_layout(active_line="25"):
                                 style={"height": "100%", "width": "100%"},
                                 figure=go.Figure(),
                                 clear_on_unhover=True,
-                                config={"displayModeBar": False},
+                                config={
+                                    "displayModeBar": False,
+                                    "scrollZoom": True,
+                                    "responsive": True,
+                                },
                             ),
                         ],
                     ),
@@ -477,13 +485,21 @@ def get_layout(active_line="25"):
                                             "width": "100%",
                                         },
                                         figure=go.Figure(),
-                                        config={"displayModeBar": False},
+                                        config={
+                                            "displayModeBar": False,
+                                            "scrollZoom": True,
+                                            "responsive": True,
+                                        },
                                     ),
                                     dcc.Graph(
                                         id="2d-time-series-hws" + location,
                                         style={"display": "none"},
                                         figure=go.Figure(),
-                                        config={"displayModeBar": False},
+                                        config={
+                                            "displayModeBar": False,
+                                            "scrollZoom": True,
+                                            "responsive": True,
+                                        },
                                     ),
                                 ],
                             ),
@@ -523,7 +539,11 @@ def get_layout(active_line="25"):
                                             "width": "100%",
                                         },
                                         figure=go.Figure(),
-                                        config={"displayModeBar": False},
+                                        config={
+                                            "displayModeBar": False,
+                                            "scrollZoom": True,
+                                            "responsive": True,
+                                        },
                                     ),
                                     html.Div(
                                         id="anom-hws-div" + location,
@@ -791,7 +811,7 @@ def build_map(line_df, line="25", theme="dark"):
             "y": 0.98,
             "bgcolor": "rgba(15,23,42,0.75)" if dark else "rgba(255,255,255,0.85)",
         },
-        uirevision=str(line),
+        uirevision=f"map_{location}_{line}",
         map={
             "bearing": 0,
             "center": {"lat": center_y, "lon": center_x},
@@ -1010,7 +1030,7 @@ def build_graph(line_hws, theme="dark"):
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         margin={"r": 20, "l": 80, "t": 15, "b": 35},
-        uirevision=str(line),
+        uirevision=f"map_{location}_{line}",
         showlegend=False,
         hovermode="closest",
         xaxis={
@@ -1501,7 +1521,7 @@ def update_active_route_pills(pathname):
             )
         )
 
-    now_time = dt.datetime.now().strftime("%H:%M:%S")
+    now_time = dt.now().strftime("%H:%M:%S")
     tab_title = f"Line {active_line} — updated {now_time}"
     return [pills, tab_title]
 
