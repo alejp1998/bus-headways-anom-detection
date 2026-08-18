@@ -614,34 +614,36 @@ h6,
   }
 
   /* KPI strip: compact, fixed */
-  .cockpit-view .grid-4 {
+  .cockpit-view .grid-4,
+  .cockpit-view .grid-5 {
     flex-shrink: 0;
     margin-bottom: 0 !important;
     gap: 0.6rem;
   }
   .cockpit-view .kpi-card {
-    min-height: 62px;
-    padding: 0.55rem 0.9rem;
+    min-height: 56px;
+    padding: 0.45rem 0.75rem;
     border-radius: 12px;
   }
   .cockpit-view .kpi-val {
-    font-size: 1.25rem;
-    margin: 0.15rem 0 0.05rem 0;
+    font-size: 1.2rem;
+    margin: 0.1rem 0 0.05rem 0;
   }
   .cockpit-view .kpi-label {
     font-size: 0.68rem;
   }
   .cockpit-view .kpi-sub {
-    font-size: 0.66rem;
+    font-size: 0.64rem;
   }
 
-  /* Workspace: map + corridor row; analytics card below — both flex to fill */
+  /* Workspace Grids: Row 1 (Map + Corridor) 50%, Row 2 (1D/2D + M-Dist/Anoms) 50% */
   .cockpit-view .workspace-grid {
     flex: 1 1 50%;
     min-height: 0;
     margin-top: 0 !important;
     gap: 0.6rem;
-    grid-template-columns: 1.1fr 1fr;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   /* Each workspace card becomes a flex column with a growing graph */
@@ -651,28 +653,13 @@ h6,
     flex-direction: column !important;
     min-height: 0 !important;
     overflow: hidden !important;
-    padding: 0.6rem 0.8rem !important;
+    padding: 0.45rem 0.7rem !important;
     margin: 0 !important;
   }
 
-  /* Analytics card fills the remaining half */
-  .cockpit-view > .modern-card:last-of-type {
-    flex: 1 1 50%;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 0.6rem 0.8rem !important;
-  }
-  .cockpit-view > .modern-card:last-of-type .custom-tabs-container {
+  .cockpit-view .minimal-tabs-container {
     flex-shrink: 0;
-    margin-bottom: 0.4rem;
-  }
-  .cockpit-view > .modern-card:last-of-type > div:last-child {
-    flex: 1 1 0;
-    min-height: 0;
-    position: relative;
-    overflow: hidden;
+    margin-bottom: 0.2rem;
   }
 
   /* Graphs fill their containers (Plotly auto-resizes responsively) */
@@ -733,4 +720,54 @@ h6,
   .cockpit-view .workspace-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* 5-Column KPI Grid */
+.grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.6rem;
+}
+
+@media (max-width: 1024px) {
+  .grid-5 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Minimal Ultra-Thin Tab Segmented Control */
+.minimal-tabs-container {
+  display: inline-flex;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+  margin-bottom: 0.25rem;
+}
+
+.minimal-tab {
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.minimal-tab:hover {
+  color: var(--text-main);
+}
+
+.minimal-tab--selected,
+.minimal-tab.active {
+  background: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
 }
