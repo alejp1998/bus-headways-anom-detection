@@ -230,12 +230,12 @@ def insert_headways_burst(city: str, df: pd.DataFrame):
                 city,
                 str(getattr(r, "line", "")),
                 int(getattr(r, "direction", 1)),
-                str(getattr(r, "busA", "")),
-                str(getattr(r, "busB", "")),
+                str(getattr(r, "busA", getattr(r, "bus_a", ""))),
+                str(getattr(r, "busB", getattr(r, "bus_b", ""))),
                 int(getattr(r, "hw_pos", 1)),
                 float(getattr(r, "headway", 0.0)),
-                float(getattr(r, "busA_ttls", 0.0)),
-                float(getattr(r, "busB_ttls", 0.0)),
+                float(getattr(r, "busA_ttls", getattr(r, "bus_a_ttls", 0.0))),
+                float(getattr(r, "busB_ttls", getattr(r, "bus_b_ttls", 0.0))),
                 getattr(r, "datetime", now_iso),
             )
         )

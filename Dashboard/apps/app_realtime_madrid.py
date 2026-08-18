@@ -27,36 +27,50 @@ def resolve_path(rel_path):
     return os.path.join(ROOT_DIR, rel_path)
 
 
-# Available colors
-colors = [
-    "#1f77b4",  # muted blue
-    "#ff7f0e",  # safety orange
-    "#2ca02c",  # cooked asparagus green
-    "#d62728",  # brick red
-    "#9467bd",  # muted purple
-    "#8c564b",  # chestnut brown
-    "#e377c2",  # raspberry yogurt pink
-    "#7f7f7f",  # middle gray
-    "#bcbd22",  # curry yellow-green
-    "#17becf",  # blue-teal
+# 16-Color High-Contrast Deterministic Vehicle & Group Palette
+BUS_PALETTE = [
+    "#8B5CF6",  # Purple (Primary)
+    "#06B6D4",  # Cyan
+    "#10B981",  # Emerald Green
+    "#F59E0B",  # Amber
+    "#EC4899",  # Pink
+    "#3B82F6",  # Bright Blue
+    "#EF4444",  # Rose Red
+    "#84CC16",  # Lime Green
+    "#6366F1",  # Indigo
+    "#14B8A6",  # Teal
+    "#F97316",  # Tangerine
+    "#A855F7",  # Violet
+    "#0EA5E9",  # Sky Blue
+    "#E11D48",  # Crimson
+    "#22C55E",  # Green
+    "#D946EF",  # Fuchsia
 ]
 
-colors2 = [
-    "#023fa5",
-    "#7d87b9",
-    "#bb7784",
-    "#8e063b",
-    "#4a6fe3",
-    "#8595e1",
-    "#e07b91",
-    "#d33f6a",
-    "#11c638",
-    "#8dd593",
-    "#ef9708",
-    "#0fcfc0",
-    "#9cded6",
-    "#f79cd4",
-]
+colors = BUS_PALETTE
+colors2 = BUS_PALETTE
+
+
+def get_bus_color(bus_id):
+    """Deterministic, high-contrast color for an individual bus plate ID."""
+    if not bus_id or str(bus_id).strip() in ("0", "nan", "None", ""):
+        return "#64748B"
+    s = str(bus_id).strip()
+    val = sum(ord(c) * (31**i) for i, c in enumerate(s))
+    return BUS_PALETTE[val % len(BUS_PALETTE)]
+
+
+def get_group_color(bus_a, bus_b):
+    """Deterministic color for a consecutive bus pair (headway group)."""
+    sa, sb = str(bus_a).strip(), str(bus_b).strip()
+    val = sum(ord(c) * 17 for c in sa) + sum(ord(c) * 31 for c in sb)
+    return BUS_PALETTE[val % len(BUS_PALETTE)]
+
+
+def str_to_int(s):
+    """Deterministic string-to-int mapping."""
+    return sum(ord(c) for c in str(s))
+
 
 zooms = {
     "1": 12.6,
@@ -866,155 +880,200 @@ def build_map(line_df, theme="dark"):
     return new_map
 
 
-def build_graph(line_hws):
-    """
-    Returns a figure with the graph of headways between buses
-    """
+def _draw_corridor_rails(graph, dest1, dest2, max_x, track_color):
+    """Draw background route rails for both directions."""
+    for dest_label in [dest1, dest2]:
+        graph.add_trace(
+            go.Scatter(
+                x=[0, max_x],
+                y=[dest_label, dest_label],
+                mode="lines",
+                line={"width": 6, "color": track_color},
+                hoverinfo="skip",
+                showlegend=False,
+            )
+        )
 
-    # Process headways
+
+def _draw_headway_bridges(graph, dir_hws, dest_label):
+    """Draw headway spacing bridges between consecutive buses on the corridor."""
+    for i in range(len(dir_hws)):
+        row = dir_hws.iloc[i]
+        bus_a, bus_b = str(row.busA), str(row.busB)
+        hw = float(row.headway)
+        ttls_b = float(row.busB_ttls)
+        ttls_a = (
+            float(row.busA_ttls)
+            if ("busA_ttls" in row and row.busA_ttls > 0)
+            else max(0.0, ttls_b - hw)
+        )
+
+        if bus_a and bus_a != "0" and hw > 0:
+            if hw < 120:
+                bridge_color, status = "#EF4444", "⚠️ BUNCHING RISK"
+            elif hw > 720:
+                bridge_color, status = "#F59E0B", "⏳ SERVICE GAP"
+            else:
+                bridge_color, status = "#8B5CF6", "✅ REGULAR"
+
+            hw_min = round(hw / 60.0, 1)
+            mid_x = (ttls_a + ttls_b) / 2.0
+
+            graph.add_trace(
+                go.Scatter(
+                    x=[ttls_a, ttls_b],
+                    y=[dest_label, dest_label],
+                    mode="lines",
+                    line={"width": 5, "color": bridge_color},
+                    hoverinfo="text",
+                    text=f"<b>Headway: {hw:.0f}s ({hw_min} min)</b><br>Between: Bus {bus_a} → Bus {bus_b}<br>Status: {status}",
+                    showlegend=False,
+                )
+            )
+            graph.add_trace(
+                go.Scatter(
+                    x=[mid_x],
+                    y=[dest_label],
+                    mode="text",
+                    text=[f"<b>{hw_min}m</b>"],
+                    textposition="top center",
+                    textfont={
+                        "size": 10,
+                        "color": bridge_color,
+                        "family": "JetBrains Mono, monospace",
+                    },
+                    hoverinfo="skip",
+                    showlegend=False,
+                )
+            )
+
+
+def _draw_bus_nodes(graph, dir_hws, dest_label, dark, text_color):
+    """Draw vehicle marker nodes with unique colors and tooltips."""
+    for i in range(len(dir_hws)):
+        row = dir_hws.iloc[i]
+        bus_id = str(row.busB)
+        if not bus_id or bus_id == "0":
+            continue
+        ttls = float(row.busB_ttls)
+        hw = float(row.headway)
+        bus_color = get_bus_color(bus_id)
+        ttls_min = round(ttls / 60.0, 1)
+
+        graph.add_trace(
+            go.Scatter(
+                x=[ttls],
+                y=[dest_label],
+                mode="markers+text",
+                name=f"Bus {bus_id}",
+                marker={
+                    "size": 22,
+                    "color": bus_color,
+                    "line": {"color": "#FFFFFF" if dark else "#0F172A", "width": 2},
+                    "symbol": "circle",
+                },
+                text=[f"<b>{bus_id}</b>"],
+                textposition="bottom center",
+                textfont={"size": 9.5, "color": text_color, "family": "Space Grotesk, sans-serif"},
+                hoverinfo="text",
+                hovertext=f"<b>Bus {bus_id}</b><br>Headway: {hw:.0f}s ({round(hw / 60, 1)} min)<br>TTLS: {ttls:.0f}s ({ttls_min} min to terminus)<br>Corridor: {dest_label}",
+                showlegend=False,
+            )
+        )
+
+
+def build_graph(line_hws, theme="dark"):
+    """Build modern linear route stringline corridor with color-coded headway bridges and bus nodes."""
     headways = line_hws
-
-    # Create figure object
     graph = go.Figure()
+    dark = theme == "dark"
 
-    # Set title and layout
-    graph.update_layout(
-        xaxis={"nticks": 30},
-        yaxis={"type": "category", "showgrid": False, "zeroline": False},
-        showlegend=False,
-        margin={"r": 0, "l": 0, "t": 0, "b": 0},
-        hovermode="closest",
-    )
-
-    if headways.shape[0] < 1:
+    if headways is None or headways.empty or "line" not in headways.columns:
+        graph.update_layout(
+            template="plotly_dark" if dark else "plotly_white",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            margin={"r": 10, "l": 10, "t": 20, "b": 20},
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[
+                {
+                    "text": "Waiting for active bus corridor telemetry...",
+                    "xref": "paper",
+                    "yref": "paper",
+                    "x": 0.5,
+                    "y": 0.5,
+                    "showarrow": False,
+                    "font": {"size": 13, "color": "#94A3B8"},
+                }
+            ],
+        )
         return graph
 
-    # Destinations
-    line = headways.line.iloc[0]
-    dest2, dest1 = lines_dict[line]["destinations"]
+    line = str(headways.line.iloc[0])
+    destinations = lines_dict.get(line, {}).get("destinations", ["Inbound", "Outbound"])
+    dest1 = f"Dir 1: {destinations[0]}" if len(destinations) > 0 else "Direction 1"
+    dest2 = f"Dir 2: {destinations[1]}" if len(destinations) > 1 else "Direction 2"
 
-    # Max dists
-    hw1 = headways.loc[headways.direction == 1]
-    hw2 = headways.loc[headways.direction == 2]
-    if hw1.shape[0] == 0:
-        pass
-    else:
-        hw1.busB_ttls.max()
-        # Add trace
-        for i in range(hw1.shape[0] - 1):
-            N, X = 50, [hw1.iloc[i].busB_ttls, hw1.iloc[i].busB_ttls + hw1.iloc[i + 1].headway]
-            X_new = []
-            for k in range(N + 1):
-                X_new.append(X[0] + (X[1] - X[0]) * k / N)
+    max_x = max_ttls.get(line, 4500)
+    track_color = "rgba(255,255,255,0.12)" if dark else "rgba(0,0,0,0.12)"
+    grid_color = "rgba(255,255,255,0.06)" if dark else "rgba(0,0,0,0.06)"
+    text_color = "#F8FAFC" if dark else "#0F172A"
 
-            graph.add_trace(
-                go.Scatter(
-                    x=X_new,
-                    y=[("<b>" + dest1 + " ") for i in range(len(X_new))],
-                    mode="lines",
-                    line={
-                        "width": 3,
-                        "color": colors2[
-                            (hw1.iloc[i + 1].busA + hw1.iloc[i + 1].busB) % len(colors2)
-                        ],
-                    },
-                    showlegend=False,
-                    hoverinfo="text",
-                    text="<b>Bus group: "
-                    + str(hw1.iloc[i + 1].busA)
-                    + "-"
-                    + str(hw1.iloc[i + 1].busB)
-                    + "</b> <br>"
-                    + "Headway: "
-                    + str(hw1.iloc[i + 1].headway)
-                    + "s",
-                )
-            )
+    graph.update_layout(
+        template="plotly_dark" if dark else "plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin={"r": 20, "l": 20, "t": 25, "b": 35},
+        uirevision=str(line),
+        showlegend=False,
+        hovermode="closest",
+        xaxis={
+            "title": {
+                "text": "<b>Time to Terminal (TTLS)</b> → (Minutes from Arrival)",
+                "font": {"size": 11, "color": "#94A3B8"},
+            },
+            "range": [-100, max_x + 200],
+            "tickmode": "array",
+            "tickvals": [0, 600, 1200, 1800, 2400, 3000, 3600, 4200, 4800, 5400, 6000],
+            "ticktext": [
+                "0m (Terminus)",
+                "10m",
+                "20m",
+                "30m",
+                "40m",
+                "50m",
+                "60m",
+                "70m",
+                "80m",
+                "90m",
+                "100m",
+            ],
+            "gridcolor": grid_color,
+            "zeroline": True,
+            "zerolinecolor": track_color,
+        },
+        yaxis={
+            "type": "category",
+            "categoryorder": "array",
+            "categoryarray": [dest2, dest1],
+            "showgrid": False,
+            "zeroline": False,
+            "tickfont": {"size": 11, "color": text_color, "family": "Space Grotesk, sans-serif"},
+        },
+    )
 
-    if hw2.shape[0] == 0:
-        pass
-    else:
-        hw2.busB_ttls.max()
-        # Add trace
-        for i in range(hw2.shape[0] - 1):
-            N, X = 50, [hw2.iloc[i].busB_ttls, hw2.iloc[i].busB_ttls + hw2.iloc[i + 1].headway]
-            X_new = []
-            for k in range(N + 1):
-                X_new.append(X[0] + (X[1] - X[0]) * k / N)
+    _draw_corridor_rails(graph, dest1, dest2, max_x, track_color)
 
-            graph.add_trace(
-                go.Scatter(
-                    x=X_new,
-                    y=[("<b>" + dest2 + " ") for i in range(len(X_new))],
-                    mode="lines",
-                    line={
-                        "width": 3,
-                        "color": colors2[
-                            (hw2.iloc[i + 1].busA + hw2.iloc[i + 1].busB) % len(colors2)
-                        ],
-                    },
-                    showlegend=False,
-                    hoverinfo="text",
-                    text="<b>Bus group: "
-                    + str(hw2.iloc[i + 1].busA)
-                    + "-"
-                    + str(hw2.iloc[i + 1].busB)
-                    + "</b> <br>"
-                    + "Headway: "
-                    + str(hw2.iloc[i + 1].headway)
-                    + "s",
-                )
-            )
+    for dir_val, dest_label in [(1, dest1), (2, dest2)]:
+        dir_hws = headways.loc[headways.direction == dir_val]
+        if dir_hws.empty:
+            continue
+        dir_hws = dir_hws.sort_values("busB_ttls")
+        _draw_headway_bridges(graph, dir_hws, dest_label)
+        _draw_bus_nodes(graph, dir_hws, dest_label, dark, text_color)
 
-    # Add buses to graph
-    for bus in headways.itertuples():
-        # Assign color based on bus id
-        color = colors[bus.busB % len(colors)]
-
-        if bus.direction == 1:
-            dest = dest1
-        else:
-            dest = dest2
-
-        # Add marker
-        graph.add_trace(
-            go.Scatter(
-                mode="markers",
-                name=bus.busB,
-                x=[bus.busB_ttls],
-                y=["<b>" + dest + " "],
-                marker={"size": 30, "color": color, "line": {"color": "black", "width": 1.5}},
-                text=[
-                    "<b>Bus: "
-                    + str(bus.busB)
-                    + "</b> <br>"
-                    + str(bus.headway)
-                    + "s to next bus <br>"
-                    + str(bus.busB_ttls)
-                    + "s to last stop"
-                ],
-                hoverinfo="text",
-            )
-        )
-        graph.add_trace(
-            go.Scatter(
-                mode="text",
-                text="<b>" + str(bus.busB),
-                x=[bus.busB_ttls],
-                y=["<b>" + dest + " "],
-                hoverinfo="none",
-            )
-        )
-
-    graph.update_layout(xaxis_range=(0, max_ttls[line]), uirevision=str(line))
-
-    # Finally we return the graph
     return graph
-
-
-def str_to_int(s):
-    """Deterministically map a bus plate string or number to an integer for color assignment."""
-    return sum(ord(c) for c in str(s))
 
 
 def build_time_series_graph(series_df, model, conf):

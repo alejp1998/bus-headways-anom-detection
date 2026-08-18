@@ -320,13 +320,9 @@ def run_live_cycle(session: requests.Session) -> dict:
     # 2. Compute live headways with the original edge/noise-filtered algorithm
     hws_df = compute_live_headways(burst_df)
     if not hws_df.empty:
-        db_hws = hws_df.rename(columns={"busA": "bus_a", "busB": "bus_b"})
-        db_hws["bus_a_ttls"] = hws_df["busB_ttls"].values
-        db_hws["bus_b_ttls"] = hws_df["busB_ttls"].values
-        db_hws["hw_pos"] = hws_df["hw_pos"].astype(int)
         hws_df.to_csv(REALTIME_DIR / "headways_burst.csv", index=False)
         try:
-            db.insert_headways_burst("London", db_hws)
+            db.insert_headways_burst("London", hws_df)
         except Exception as e:
             print(f"  ⚠️ headways_burst DB write: {e}")
 

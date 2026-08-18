@@ -706,13 +706,23 @@ h6,
     min-height: 0;
   }
 
-  /* Hide the invisible tab panels from layout flow; keep them rendered */
-  .cockpit-view .dash-graph[style*="visibility: hidden"] {
-    position: absolute !important;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100% !important;
+  /* Compact Toolbar Sliders */
+  .compact-slider {
+    margin: 0.35rem 0 0.5rem 0 !important;
+  }
+  .compact-slider .rc-slider-mark {
+    top: 13px !important;
+  }
+  .compact-slider .rc-slider-mark-text {
+    font-size: 0.68rem !important;
+    font-family: var(--font-mono);
+    color: var(--text-dim) !important;
+    white-space: nowrap;
+  }
+  .compact-slider .rc-slider-handle {
+    width: 13px !important;
+    height: 13px !important;
+    margin-top: -4.5px !important;
   }
 }
 
