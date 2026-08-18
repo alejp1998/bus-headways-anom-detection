@@ -155,6 +155,43 @@ layout = html.Div(
                                 html.Div(
                                     id="route-pills-container" + location,
                                     className="flex-gap flex-wrap",
+                                    children=[
+                                        dcc.Link(
+                                            "Line 1",
+                                            href="/realtime/madrid/1",
+                                            className="route-pill active",
+                                        ),
+                                        dcc.Link(
+                                            "Line 44",
+                                            href="/realtime/madrid/44",
+                                            className="route-pill",
+                                        ),
+                                        dcc.Link(
+                                            "Line 82",
+                                            href="/realtime/madrid/82",
+                                            className="route-pill",
+                                        ),
+                                        dcc.Link(
+                                            "Line 132",
+                                            href="/realtime/madrid/132",
+                                            className="route-pill",
+                                        ),
+                                        dcc.Link(
+                                            "Line 133",
+                                            href="/realtime/madrid/133",
+                                            className="route-pill",
+                                        ),
+                                        dcc.Link(
+                                            "Line F",
+                                            href="/realtime/madrid/F",
+                                            className="route-pill",
+                                        ),
+                                        dcc.Link(
+                                            "Line G",
+                                            href="/realtime/madrid/G",
+                                            className="route-pill",
+                                        ),
+                                    ],
                                 ),
                             ],
                         ),
@@ -766,7 +803,7 @@ def calc_map_params(df):
     return df, center_x, center_y, zoom
 
 
-def build_map(line_df, theme="dark"):
+def build_map(line_df, line="1", theme="dark"):
     """
     Returns a figure with the map of live location of buses (theme-aware).
     """

@@ -125,6 +125,28 @@ layout = html.Div(
                                 html.Div(
                                     id="route-pills-container" + location,
                                     className="flex-gap flex-wrap",
+                                    children=[
+                                        dcc.Link(
+                                            "Line 18",
+                                            href="/realtime/london/18",
+                                            className="route-pill",
+                                        ),
+                                        dcc.Link(
+                                            "Line 24",
+                                            href="/realtime/london/24",
+                                            className="route-pill",
+                                        ),
+                                        dcc.Link(
+                                            "Line 25",
+                                            href="/realtime/london/25",
+                                            className="route-pill active",
+                                        ),
+                                        dcc.Link(
+                                            "Line 73",
+                                            href="/realtime/london/73",
+                                            className="route-pill",
+                                        ),
+                                    ],
                                 ),
                             ],
                         ),
@@ -726,7 +748,7 @@ def calc_map_params(line="25"):
     return center_x, center_y, zoom
 
 
-def build_map(line_df, theme="dark", line="25"):
+def build_map(line_df, line="25", theme="dark"):
     """Build the interactive MapLibre/Scattermap route diagram with live buses."""
     dark = theme == "dark"
     map_style = mapbox_style if dark else mapbox_light_style
