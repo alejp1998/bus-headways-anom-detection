@@ -112,8 +112,12 @@ layout = html.Div(
     children=[
         # ---- Executive Control & Parameters Toolbar ----
         html.Div(
-            className="modern-card no-hover",
-            style={"padding": "0.55rem 0.95rem", "marginBottom": "0.5rem"},
+            className="modern-card no-hover toolbar-card",
+            style={
+                "padding": "0.5rem 1rem 0.85rem 1rem",
+                "marginBottom": "0.5rem",
+                "overflow": "visible",
+            },
             children=[
                 # Top Row: Title, Route Pills, Action Buttons
                 html.Div(

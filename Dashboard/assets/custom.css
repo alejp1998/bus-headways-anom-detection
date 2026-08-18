@@ -695,21 +695,25 @@ h6,
 
   /* Compact Toolbar Sliders */
   .compact-slider {
-    margin: 0.15rem 0 0.3rem 0 !important;
+    height: 20px !important;
+    padding: 2px 4px !important;
+    margin: 0 !important;
   }
   .compact-slider .rc-slider-mark {
-    top: 9px !important;
+    top: 10px !important;
   }
   .compact-slider .rc-slider-mark-text {
-    font-size: 0.65rem !important;
+    font-size: 0.62rem !important;
     font-family: var(--font-mono);
     color: var(--text-dim) !important;
+    line-height: 1 !important;
     white-space: nowrap;
   }
   .compact-slider .rc-slider-handle {
-    width: 11px !important;
-    height: 11px !important;
-    margin-top: -3.5px !important;
+    width: 12px !important;
+    height: 12px !important;
+    margin-top: -4px !important;
+    top: 4px !important;
   }
 }
 
@@ -770,4 +774,10 @@ h6,
   color: var(--text-main) !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
+}
+
+.toolbar-card {
+  padding: 0.5rem 1rem 0.85rem 1rem !important;
+  overflow: visible !important;
+  min-height: 80px !important;
 }

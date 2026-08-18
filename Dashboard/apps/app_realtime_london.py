@@ -91,8 +91,12 @@ layout = html.Div(
     children=[
         # ---- Executive Control & Parameters Toolbar ----
         html.Div(
-            className="modern-card no-hover",
-            style={"padding": "0.55rem 0.95rem", "marginBottom": "0.5rem"},
+            className="modern-card no-hover toolbar-card",
+            style={
+                "padding": "0.5rem 1rem 0.85rem 1rem",
+                "marginBottom": "0.5rem",
+                "overflow": "visible",
+            },
             children=[
                 # Top Row: Title, Route Pills, Action Buttons
                 html.Div(
@@ -817,6 +821,7 @@ def build_map(line_df, theme="dark", line="25"):
                     ],
                     hoverinfo="text",
                     name=f"Bus {bus.bus}",
+                    showlegend=False,
                 )
             )
 
@@ -1025,97 +1030,72 @@ def build_graph(line_hws, theme="dark"):
 def build_time_series_graph(series_df, model, conf):
     graph = go.Figure()
 
-    # Set title and layout
+    # Set title and clean layout (no cluttered 25-pair text wall)
     graph.update_layout(
-        title="<b>1D HEADWAYS TIME SERIES</b> - (In seconds)",
+        title={"text": "<b>1D HEADWAYS TIME SERIES</b> - (In seconds)", "font": {"size": 11.5}},
         uirevision="ts1",
-        legend_title="<b>Group ids</b>",
-        yaxis={
-            "nticks": 20,
-            "range": (series_df.hw12.min() - 50, series_df.hw12.max() + 50),
-            "zerolinecolor": "darkgrey",
-        },
-        legend={"x": -0.02, "y": -0.05, "orientation": "h"},
-        margin={"r": 0, "l": 0, "t": 40, "b": 0},
+        showlegend=False,
         hovermode="closest",
+        margin={"r": 15, "l": 48, "t": 28, "b": 25},
+        xaxis={
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "nticks": 8,
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
+        yaxis={
+            "title": {"text": "Headway", "font": {"size": 10, "color": "#94A3B8"}},
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "zeroline": True,
+            "zerolinecolor": "darkgrey",
+            "ticksuffix": "s",
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
     )
 
     series_df = series_df.loc[series_df.dim == 1]
     if series_df.shape[0] < 1:
         return graph
 
-    # All bus names
-    bus_names_all = ["bus" + str(i) for i in range(1, 3)]
-    ["hw" + str(i) + str(i + 1) for i in range(1, 2)]
-
-    # Min and max datetimes
     min_time = series_df.datetime.min()
     max_time = series_df.datetime.max()
 
-    # Dim threshold
     dim = 1
     std = model["cov_matrix"]
     mean = model["mean"]
     m_th = math.sqrt(chi2.ppf(conf, df=dim))
-    # Add thresholds
+
+    # Add statistical threshold lines (dashed red bounds)
     thresholds = [(mean - std * m_th), (mean + std * m_th)]
     for th in thresholds:
         graph.add_shape(
-            name=str(th),
+            name=f"Threshold ({conf * 100:.0f}%)",
             type="line",
             x0=min_time,
             y0=th,
             x1=max_time,
             y1=th,
-            line={
-                "color": "red",
-                "width": 2,
-                "dash": "dashdot",
-            },
+            line={"color": "#EF4444", "width": 1.5, "dash": "dashdot"},
         )
 
-    # Locate unique groups
-    unique_groups = []
-    unique_groups_df = series_df.drop_duplicates(bus_names_all)
-    for i in range(unique_groups_df.shape[0]):
-        group = [unique_groups_df.iloc[i][bus_names_all[k]] for k in range(2)]
-        unique_groups.append(group)
-
-    for group in unique_groups:
-        # Build indexing conditions
-        conds = [series_df[bus_names_all[k]] == group[k] for k in range(2)]
-        final_cond = True
-        for cond in conds:
-            final_cond &= cond
-        group_df = series_df.loc[final_cond]
+    # Add group lines with matching colors
+    for (b1, b2), group_df in series_df.groupby(["bus1", "bus2"], sort=False):
         group_df = group_df.sort_values("datetime")
+        name = f"{b1}-{b2}"
+        color = get_group_color(b1, b2)
 
-        name = str(group[0])
-        for bus in group[1:]:
-            if bus != 0:
-                name += "-" + str(bus)
-            else:
-                break
-
-        # Build group trace
         graph.add_trace(
             go.Scatter(
                 name=name,
                 x=group_df.datetime,
                 y=group_df.hw12,
                 mode="lines+markers",
-                line={
-                    "width": 3,
-                    "color": get_group_color(group_df.bus1.iloc[0], group_df.bus2.iloc[0]),
-                },
+                line={"width": 2.5, "color": color},
+                marker={"size": 5, "color": color},
+                showlegend=False,
                 text=[
-                    "<b>Bus group: "
-                    + str(name)
-                    + "</b> <br>"
-                    + "Headway: "
-                    + str(row.hw12)
-                    + "s<br>"
-                    + row.datetime
+                    f"<b>Group: {name}</b><br>Headway: {row.hw12:.0f}s ({round(row.hw12 / 60, 1)} min)<br>Time: {str(row.datetime)[:19]}"
                     for row in group_df.itertuples()
                 ],
                 hoverinfo="text",
@@ -1128,223 +1108,139 @@ def build_time_series_graph(series_df, model, conf):
 def build_2d_time_series_graph(series_df, model, conf):
     graph = go.Figure()
 
-    # Set title and layout
     graph.update_layout(
-        title="<b>2D HEADWAYS TIME SERIES</b> - (In seconds)",
+        title={"text": "<b>2D HEADWAYS DYNAMICS</b> - (In seconds)", "font": {"size": 11.5}},
         uirevision="ts2",
-        legend_title="<b>Group ids</b>",
-        xaxis={"nticks": 20, "zerolinecolor": "darkgrey"},
-        yaxis={"nticks": 20, "zerolinecolor": "darkgrey"},
-        legend={"x": -0.02, "y": -0.05, "orientation": "h"},
-        margin={"r": 0, "l": 0, "t": 40, "b": 0},
+        showlegend=False,
         hovermode="closest",
+        margin={"r": 15, "l": 48, "t": 28, "b": 30},
+        xaxis={
+            "title": {"text": "Headway HW12", "font": {"size": 10, "color": "#94A3B8"}},
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "ticksuffix": "s",
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
+        yaxis={
+            "title": {"text": "Headway HW23", "font": {"size": 10, "color": "#94A3B8"}},
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "ticksuffix": "s",
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
     )
 
     series_df = series_df.loc[series_df.dim == 2]
     if series_df.shape[0] < 1:
         return graph
 
-    # All bus names
-    bus_names_all = ["bus" + str(i) for i in range(1, 4)]
-    ["hw" + str(i) + str(i + 1) for i in range(1, 3)]
-
-    # Min and max datetimes
-    series_df.datetime.min()
-    series_df.datetime.max()
-
-    # Dim threshold
-    dim = 2
+    # Add Gaussian confidence ellipse
+    mus = [model["mean"][0], model["mean"][1]]
     cov_matrix = model["cov_matrix"]
-    mean = model["mean"]
-    math.sqrt(chi2.ppf(conf, df=dim))
+    x, y = ellipse(mus, cov_matrix, conf)
 
-    # Confidence ellipse points
-    x, y = ellipse(mean, cov_matrix, conf)
-    # Confidence ellipse
     graph.add_trace(
         go.Scatter(
-            name=f"{conf * 100}% Confidence Ellipse",
             x=x,
             y=y,
             mode="lines",
-            line={"color": "red", "dash": "dash"},
-            text=f"{conf * 100}% Confidence Ellipse",
-            hoverinfo="text",
+            line={"color": "#EF4444", "width": 1.5, "dash": "dashdot"},
+            name=f"{conf * 100:.1f}% Confidence Ellipse",
+            hoverinfo="name",
             showlegend=False,
         )
     )
 
-    # Locate unique groups
-    unique_groups = []
-    unique_groups_df = series_df.drop_duplicates(bus_names_all)
-    for i in range(unique_groups_df.shape[0]):
-        group = [unique_groups_df.iloc[i][bus_names_all[k]] for k in range(3)]
-        unique_groups.append(group)
-
-    for group in unique_groups:
-        # Build indexing conditions
-        conds = [series_df[bus_names_all[k]] == group[k] for k in range(3)]
-        final_cond = True
-        for cond in conds:
-            final_cond &= cond
-        group_df = series_df.loc[final_cond]
-        group_df = group_df.sort_values("datetime")
-
-        name = str(group[0])
-        for bus in group[1:]:
-            if bus != 0:
-                name += "-" + str(bus)
-            else:
-                break
-
-        # Head point
-        graph.add_trace(
-            go.Scatter(
-                name=name,
-                x=[group_df.hw12.iloc[-1]],
-                y=[group_df.hw23.iloc[-1]],
-                mode="markers",
-                marker={"size": 10, "color": "black"},
-                showlegend=False,
-                hoverinfo="none",
-            )
-        )
-
-        # Build group trace
+    for (b1, b2, b3), group_df in series_df.groupby(["bus1", "bus2", "bus3"], sort=False):
+        name = f"{b1}-{b2}-{b3}"
+        color = get_group_color(b1, b2)
         graph.add_trace(
             go.Scatter(
                 name=name,
                 x=group_df.hw12,
                 y=group_df.hw23,
                 mode="lines+markers",
-                line={"width": 3, "color": colors[str_to_int(group_df.bus2.iloc[0]) % len(colors)]},
+                line={"width": 2, "color": color},
+                marker={"size": 6, "color": color},
+                showlegend=False,
                 text=[
-                    "<b>Bus group: "
-                    + str(name)
-                    + "</b> <br>"
-                    + "Headways: ["
-                    + str(row.hw12)
-                    + ","
-                    + str(row.hw23)
-                    + "]<br>"
-                    + row.datetime
+                    f"<b>Triplet: {name}</b><br>HW12: {row.hw12:.0f}s | HW23: {row.hw23:.0f}s<br>Time: {str(row.datetime)[:19]}"
                     for row in group_df.itertuples()
                 ],
                 hoverinfo="text",
             )
         )
+
     return graph
 
 
 def build_m_dist_graph(series_df, line):
     graph = go.Figure()
 
-    # Read dict (bounded retries - never spin forever)
-    conf = 0.98
-    for _ in range(5):
-        try:
-            with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
-                hyperparams = json.load(f)
-            conf = hyperparams.get(line, {}).get("conf", 0.98)
-            break
-        except Exception:
-            time.sleep(0.2)
-
-    # Set title and layout
     graph.update_layout(
-        title="<b>MAHALANOBIS DISTANCE</b>",
+        title={"text": "<b>MAHALANOBIS DISTANCE</b> - Anomaly Metric", "font": {"size": 11.5}},
         uirevision="md",
-        legend_title="<b>Group ids</b>",
-        xaxis={"nticks": 20},
-        yaxis={"title_text": "Mahalanobis Distance", "nticks": 20},
-        legend={"x": -0.02, "y": -0.05, "orientation": "h"},
-        margin={"r": 0, "l": 0, "t": 40, "b": 0},
+        showlegend=False,
         hovermode="closest",
+        margin={"r": 15, "l": 48, "t": 28, "b": 25},
+        xaxis={
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "nticks": 8,
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
+        yaxis={
+            "title": {"text": "M-Distance (σ)", "font": {"size": 10, "color": "#94A3B8"}},
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
     )
 
+    series_df = series_df.loc[series_df.dim == 1]
     if series_df.shape[0] < 1:
         return graph
 
-    # All bus names (adaptive to whatever dimensionality the data carries)
-    avail_bus = [c for c in series_df.columns if c.startswith("bus")]
-    avail_hw = [c for c in series_df.columns if c.startswith("hw")]
-    bus_names_all = avail_bus
-    hw_names_all = avail_hw
-
-    # Min and max datetimes
     min_time = series_df.datetime.min()
     max_time = series_df.datetime.max()
 
-    # Locate unique groups
-    unique_groups = []
-    unique_groups_df = series_df.drop_duplicates(bus_names_all)
-    for i in range(unique_groups_df.shape[0]):
-        group = [unique_groups_df.iloc[i][bus_names_all[k]] for k in range(len(bus_names_all))]
-        unique_groups.append(group)
+    # Read threshold
+    try:
+        with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
+            hyperparams = json.load(f)
+        conf = hyperparams.get(str(line), {}).get("conf", 0.98)
+    except Exception:
+        conf = 0.98
+    m_th = math.sqrt(chi2.ppf(conf, df=1))
 
-    last_dim = 0
-    for group in unique_groups:
-        # Build indexing conditions
-        conds = [series_df[bus_names_all[k]] == group[k] for k in range(len(bus_names_all))]
-        final_cond = True
-        for cond in conds:
-            final_cond &= cond
-        group_df = series_df.loc[final_cond]
+    # Add red anomaly threshold line
+    graph.add_shape(
+        name=f"Anomaly Threshold ({conf * 100:.0f}%)",
+        type="line",
+        x0=min_time,
+        y0=m_th,
+        x1=max_time,
+        y1=m_th,
+        line={"color": "#EF4444", "width": 1.5, "dash": "dashdot"},
+    )
+
+    for (b1, b2), group_df in series_df.groupby(["bus1", "bus2"], sort=False):
         group_df = group_df.sort_values("datetime")
+        name = f"{b1}-{b2}"
+        color = get_group_color(b1, b2)
 
-        # Dimension
-        dim = group_df.iloc[0].dim
-        color = colors[dim % len(colors)]
-
-        # Dim threshold
-        m_th = math.sqrt(chi2.ppf(conf, df=dim))
-
-        if dim != last_dim:
-            graph.add_shape(
-                name=f"{dim}Dim MD Threshold",
-                type="line",
-                x0=min_time,
-                y0=m_th,
-                x1=max_time,
-                y1=m_th,
-                line={
-                    "color": color,
-                    "width": 2,
-                    "dash": "dashdot",
-                },
-            )
-
-        last_dim = dim
-
-        name = str(group[0])
-        for bus in group[1 : dim + 1]:
-            name += "-" + str(bus)
-
-        hw_values = []
-        for _index, row in group_df.iterrows():
-            hw_value = str(row.hw12)
-            for hw_name in hw_names_all[1:dim]:
-                if hw_name in group_df.columns:
-                    hw_value += "," + str(row[hw_name])
-            hw_values.append(hw_value)
-
-        # Build group trace
         graph.add_trace(
             go.Scatter(
                 name=name,
                 x=group_df.datetime,
                 y=group_df.m_dist,
                 mode="lines+markers",
-                line={"width": 3, "color": color},
+                line={"width": 2.5, "color": color},
+                marker={"size": 5, "color": color},
+                showlegend=False,
                 text=[
-                    "<b>Bus group: "
-                    + str(name)
-                    + "</b> <br>"
-                    + "Headways: ["
-                    + hw_values[i]
-                    + "]<br>"
-                    + group_df.iloc[i].datetime
-                    for i in range(group_df.shape[0])
+                    f"<b>Group: {name}</b><br>M-Dist: {row.m_dist:.2f}σ (Th: {m_th:.2f}σ)<br>Anomaly: {'🔴 YES' if row.anom else '🟢 NO'}<br>Time: {str(row.datetime)[:19]}"
+                    for row in group_df.itertuples()
                 ],
                 hoverinfo="text",
             )
