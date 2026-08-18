@@ -1193,12 +1193,13 @@ def build_2d_time_series_graph(series_df, model, conf):
     return graph
 
 
-def build_m_dist_graph(series_df, line):
+def build_m_dist_graph(series_df, line, dim=1):
     graph = go.Figure()
 
+    dim_label = "2D Triplet" if dim == 2 else "1D Pair"
     graph.update_layout(
         title=None,
-        uirevision="md",
+        uirevision=f"md_{dim}",
         showlegend=False,
         hovermode="closest",
         margin={"r": 15, "l": 45, "t": 10, "b": 22},
@@ -1209,32 +1210,32 @@ def build_m_dist_graph(series_df, line):
             "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
         },
         yaxis={
-            "title": {"text": "M-Distance (σ)", "font": {"size": 10, "color": "#94A3B8"}},
+            "title": {"text": f"M-Dist {dim_label} (σ)", "font": {"size": 10, "color": "#94A3B8"}},
             "showgrid": True,
             "gridcolor": "rgba(255,255,255,0.06)",
             "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
         },
     )
 
-    series_df = series_df.loc[series_df.dim == 1]
+    series_df = series_df.loc[series_df.dim == dim]
     if series_df.shape[0] < 1:
         return graph
 
     min_time = series_df.datetime.min()
     max_time = series_df.datetime.max()
 
-    # Read threshold
+    # Read threshold for this dimension
     try:
         with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
             hyperparams = json.load(f)
         conf = hyperparams.get(str(line), {}).get("conf", 0.98)
     except Exception:
         conf = 0.98
-    m_th = math.sqrt(chi2.ppf(conf, df=1))
+    m_th = math.sqrt(chi2.ppf(conf, df=dim))
 
     # Add red anomaly threshold line
     graph.add_shape(
-        name=f"Anomaly Threshold ({conf * 100:.0f}%)",
+        name=f"Anomaly Threshold ({conf * 100:.0f}%, df={dim})",
         type="line",
         x0=min_time,
         y0=m_th,
@@ -1243,27 +1244,50 @@ def build_m_dist_graph(series_df, line):
         line={"color": "#EF4444", "width": 1.5, "dash": "dashdot"},
     )
 
-    for (b1, b2), group_df in series_df.groupby(["bus1", "bus2"], sort=False):
-        group_df = group_df.sort_values("datetime")
-        name = f"{b1}-{b2}"
-        color = get_group_color(b1, b2)
+    if dim == 2:
+        for (b1, b2, b3), group_df in series_df.groupby(["bus1", "bus2", "bus3"], sort=False):
+            group_df = group_df.sort_values("datetime")
+            name = f"{b1}-{b2}-{b3}"
+            color = get_group_color(b1, b2)
 
-        graph.add_trace(
-            go.Scatter(
-                name=name,
-                x=group_df.datetime,
-                y=group_df.m_dist,
-                mode="lines+markers",
-                line={"width": 2.5, "color": color},
-                marker={"size": 5, "color": color},
-                showlegend=False,
-                text=[
-                    f"<b>Group: {name}</b><br>M-Dist: {row.m_dist:.2f}σ (Th: {m_th:.2f}σ)<br>Anomaly: {'🔴 YES' if row.anom else '🟢 NO'}<br>Time: {str(row.datetime)[:19]}"
-                    for row in group_df.itertuples()
-                ],
-                hoverinfo="text",
+            graph.add_trace(
+                go.Scatter(
+                    name=name,
+                    x=group_df.datetime,
+                    y=group_df.m_dist,
+                    mode="lines+markers",
+                    line={"width": 2, "color": color},
+                    marker={"size": 4.5, "color": color},
+                    showlegend=False,
+                    text=[
+                        f"<b>Triplet: {name}</b><br>M-Dist (2D): {row.m_dist:.2f}σ (Th: {m_th:.2f}σ)<br>Anomaly: {'🔴 YES' if row.anom else '🟢 NO'}<br>Time: {str(row.datetime)[:19]}"
+                        for row in group_df.itertuples()
+                    ],
+                    hoverinfo="text",
+                )
             )
-        )
+    else:
+        for (b1, b2), group_df in series_df.groupby(["bus1", "bus2"], sort=False):
+            group_df = group_df.sort_values("datetime")
+            name = f"{b1}-{b2}"
+            color = get_group_color(b1, b2)
+
+            graph.add_trace(
+                go.Scatter(
+                    name=name,
+                    x=group_df.datetime,
+                    y=group_df.m_dist,
+                    mode="lines+markers",
+                    line={"width": 2.5, "color": color},
+                    marker={"size": 5, "color": color},
+                    showlegend=False,
+                    text=[
+                        f"<b>Group: {name}</b><br>M-Dist (1D): {row.m_dist:.2f}σ (Th: {m_th:.2f}σ)<br>Anomaly: {'🔴 YES' if row.anom else '🟢 NO'}<br>Time: {str(row.datetime)[:19]}"
+                        for row in group_df.itertuples()
+                    ],
+                    hoverinfo="text",
+                )
+            )
 
     return graph
 
@@ -1569,7 +1593,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, theme="dark", hov
     return [time_series_graph]
 
 
-# CALLBACK 5 - Mahalanobis Distance series
+# CALLBACK 5 - Mahalanobis Distance series (adapts to the active 1D/2D tab on its left)
 @app.callback(
     [Output("mdist-hws" + location, "figure")],
     [
@@ -1577,12 +1601,17 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, theme="dark", hov
         Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
         Input("theme-store", "data"),
+        Input("tabs-series" + location, "value"),
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_mdist_series(n_intervals, n_clicks, pathname, theme="dark", hoverData=None):
+def update_mdist_series(
+    n_intervals, n_clicks, pathname, theme="dark", tab_series=None, hoverData=None
+):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-    cached = _cached_figure("md", line)
+    dim = 2 if (tab_series and "ts2" in str(tab_series)) else 1
+    cache_key = "md_" + str(dim)
+    cached = _cached_figure(cache_key, line)
     if cached[1]:
         return [cached[0]]
 
@@ -1590,7 +1619,11 @@ def update_mdist_series(n_intervals, n_clicks, pathname, theme="dark", hoverData
 
     series = read_df("series", line=line)
 
-    line_series = series.loc[series.line == line]
+    line_series = (
+        series.loc[(series.line == line) & (series.dim == dim)]
+        if (series is not None and not series.empty)
+        else pd.DataFrame()
+    )
 
     if hover_buses:
         if len(hover_buses) == 1:
@@ -1605,7 +1638,6 @@ def update_mdist_series(n_intervals, n_clicks, pathname, theme="dark", hoverData
                 | (line_series.bus8 == hover_buses[0])
                 | (line_series.bus9 == hover_buses[0])
             ]
-
         elif len(hover_buses) == 2:
             line_series = line_series.loc[
                 ((line_series.bus1 == hover_buses[0]) & (line_series.bus2 == hover_buses[1]))
@@ -1625,10 +1657,10 @@ def update_mdist_series(n_intervals, n_clicks, pathname, theme="dark", hoverData
             )
         ]
 
-    # Create mh dist graph
-    m_dist_graph = build_m_dist_graph(line_series, line)
+    # Create mh dist graph for the selected dimension
+    m_dist_graph = build_m_dist_graph(line_series, line, dim=dim)
 
-    _store_figure("md", line, m_dist_graph)
+    _store_figure(cache_key, line, m_dist_graph)
     m_dist_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [m_dist_graph]
 
@@ -1664,9 +1696,8 @@ def update_anomalies_table(n_intervals, n_clicks, pathname):
     # And return all of them
     return [
         html.Div(
-            className="box",
-            style={"height": box_height},
-            children=[html.H2("DETECTED ANOMALIES", className="title is-5"), anoms_table],
+            style={"height": "100%", "width": "100%", "overflowY": "auto", "padding": "4px"},
+            children=[anoms_table],
         )
     ]
 
