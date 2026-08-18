@@ -1,6 +1,5 @@
 import json
 import math
-import time
 from datetime import datetime as dt
 
 import numpy as np
@@ -156,12 +155,6 @@ layout = html.Div(
                                 html.Div(
                                     id="route-pills-container" + location,
                                     className="flex-gap flex-wrap",
-                                ),
-                                html.Button(
-                                    [html.I(className="fa-solid fa-rotate"), " Refresh"],
-                                    className="btn-primary-gradient",
-                                    id="update-button" + location,
-                                    n_clicks=0,
                                 ),
                             ],
                         ),
@@ -1089,66 +1082,92 @@ def build_graph(line_hws, theme="dark"):
     return graph
 
 
-def build_time_series_graph(series_df, model, conf):
+def build_time_series_graph(series_df, model, conf=0.98):
     graph = go.Figure()
 
-    # Set title and layout
     graph.update_layout(
         title=None,
         uirevision="ts1",
-        legend_title="<b>Group ids</b>",
-        yaxis={
-            "nticks": 20,
-            "range": (series_df.hw12.min() - 50, series_df.hw12.max() + 50),
-            "zerolinecolor": "darkgrey",
-        },
-        legend={"x": -0.02, "y": -0.05, "orientation": "h"},
-        margin={"r": 15, "l": 45, "t": 10, "b": 22},
+        showlegend=False,
         hovermode="closest",
+        margin={"r": 15, "l": 45, "t": 10, "b": 22},
+        xaxis={
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "nticks": 8,
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
+        yaxis={
+            "title": {"text": "Headway", "font": {"size": 10, "color": "#94A3B8"}},
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "zeroline": True,
+            "zerolinecolor": "darkgrey",
+            "ticksuffix": "s",
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
     )
 
     series_df = series_df.loc[series_df.dim == 1]
     if series_df.shape[0] < 1:
         return graph
 
-    # All bus names
-    # Min and max datetimes
     min_time = series_df.datetime.min()
     max_time = series_df.datetime.max()
 
-    # Dim threshold
     dim = 1
-    std = model["cov_matrix"]
-    mean = model["mean"]
+    std = (
+        float(model["cov_matrix"])
+        if not isinstance(model["cov_matrix"], list)
+        else float(model["cov_matrix"][0][0])
+    )
+    mean = float(model["mean"]) if not isinstance(model["mean"], list) else float(model["mean"][0])
     m_th = math.sqrt(chi2.ppf(conf, df=dim))
-    # Add thresholds
-    thresholds = [(mean - std * m_th), (mean + std * m_th)]
-    for th in thresholds:
-        graph.add_shape(
-            name=str(th),
-            type="line",
-            x0=min_time,
-            y0=th,
-            x1=max_time,
-            y1=th,
-            line={
-                "color": "red",
-                "width": 2,
-                "dash": "dashdot",
-            },
+
+    # 1. Add interactive hoverable statistical threshold lines
+    upper_th = round(mean + std * m_th, 1)
+    lower_th = max(0.0, round(mean - std * m_th, 1))
+
+    # Upper bound line
+    graph.add_trace(
+        go.Scatter(
+            x=[min_time, max_time],
+            y=[upper_th, upper_th],
+            mode="lines",
+            line={"color": "#EF4444", "width": 1.5, "dash": "dashdot"},
+            name=f"Upper Threshold ({conf * 100:.1f}%)",
+            text=[
+                f"<b>Upper Threshold ({conf * 100:.1f}%)</b><br>Bound: {upper_th:.0f}s ({round(upper_th / 60, 1)} min)",
+                f"<b>Upper Threshold ({conf * 100:.1f}%)</b><br>Bound: {upper_th:.0f}s ({round(upper_th / 60, 1)} min)",
+            ],
+            hoverinfo="text",
+            showlegend=False,
+        )
+    )
+
+    # Lower bound line (if above zero)
+    if lower_th > 0:
+        graph.add_trace(
+            go.Scatter(
+                x=[min_time, max_time],
+                y=[lower_th, lower_th],
+                mode="lines",
+                line={"color": "#EF4444", "width": 1.5, "dash": "dashdot"},
+                name=f"Lower Threshold ({conf * 100:.1f}%)",
+                text=[
+                    f"<b>Lower Threshold ({conf * 100:.1f}%)</b><br>Bound: {lower_th:.0f}s ({round(lower_th / 60, 1)} min)",
+                    f"<b>Lower Threshold ({conf * 100:.1f}%)</b><br>Bound: {lower_th:.0f}s ({round(lower_th / 60, 1)} min)",
+                ],
+                hoverinfo="text",
+                showlegend=False,
+            )
         )
 
-    # Vectorized group iteration (100x faster than boolean slicing loops)
-    for (bus1, bus2), group_df in series_df.groupby(["bus1", "bus2"], sort=False):
-        if str(bus1) == "0" or str(bus2) == "0":
-            continue
+    # 2. Add group lines with matching colors
+    for (b1, b2), group_df in series_df.groupby(["bus1", "bus2"], sort=False):
         group_df = group_df.sort_values("datetime")
-        name = f"{bus1}-{bus2}"
-        color_idx = (
-            (str_to_int(bus1) + str_to_int(bus2)) % len(colors2)
-            if "str_to_int" in globals()
-            else (int(bus1) + int(bus2)) % len(colors2)
-        )
+        name = f"{b1}-{b2}"
+        color = get_group_color(b1, b2)
 
         graph.add_trace(
             go.Scatter(
@@ -1156,10 +1175,12 @@ def build_time_series_graph(series_df, model, conf):
                 x=group_df.datetime,
                 y=group_df.hw12,
                 mode="lines+markers",
-                line={"width": 3, "color": colors2[color_idx]},
+                line={"width": 2.5, "color": color},
+                marker={"size": 5, "color": color},
+                showlegend=False,
                 text=[
-                    f"<b>Bus group: {name}</b><br>Headway: {r.hw12}s<br>{r.datetime}"
-                    for r in group_df.itertuples()
+                    f"<b>Group: {name}</b><br>Headway: {row.hw12:.0f}s ({round(row.hw12 / 60, 1)} min)<br>Time: {str(row.datetime)[:19]}"
+                    for row in group_df.itertuples()
                 ],
                 hoverinfo="text",
             )
@@ -1168,230 +1189,190 @@ def build_time_series_graph(series_df, model, conf):
     return graph
 
 
-def build_2d_time_series_graph(series_df, model, conf):
+def build_2d_time_series_graph(series_df, model, conf=0.98):
     graph = go.Figure()
 
-    # Set title and layout
     graph.update_layout(
         title=None,
         uirevision="ts2",
-        legend_title="<b>Group ids</b>",
-        xaxis={"nticks": 20, "zerolinecolor": "darkgrey"},
-        yaxis={"nticks": 20, "zerolinecolor": "darkgrey"},
-        legend={"x": -0.02, "y": -0.05, "orientation": "h"},
-        margin={"r": 0, "l": 0, "t": 40, "b": 0},
+        showlegend=False,
         hovermode="closest",
+        margin={"r": 15, "l": 45, "t": 10, "b": 25},
+        xaxis={
+            "title": {"text": "Headway HW12", "font": {"size": 10, "color": "#94A3B8"}},
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "ticksuffix": "s",
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
+        yaxis={
+            "title": {"text": "Headway HW23", "font": {"size": 10, "color": "#94A3B8"}},
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "ticksuffix": "s",
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
     )
 
     series_df = series_df.loc[series_df.dim == 2]
     if series_df.shape[0] < 1:
         return graph
 
-    # All bus names
-    bus_names_all = ["bus" + str(i) for i in range(1, 4)]
-    ["hw" + str(i) + str(i + 1) for i in range(1, 3)]
-
-    # Min and max datetimes
-    series_df.datetime.min()
-    series_df.datetime.max()
-
-    # Dim threshold
-    dim = 2
+    # Add Gaussian confidence ellipse
+    mus = [model["mean"][0], model["mean"][1]]
     cov_matrix = model["cov_matrix"]
-    mean = model["mean"]
-    math.sqrt(chi2.ppf(conf, df=dim))
+    x, y = ellipse(mus, cov_matrix, conf)
 
-    # Confidence ellipse points
-    x, y = ellipse(mean, cov_matrix, conf)
-    # Confidence ellipse
     graph.add_trace(
         go.Scatter(
-            name=f"{conf * 100}% Confidence Ellipse",
             x=x,
             y=y,
             mode="lines",
-            line={"color": "red", "dash": "dash"},
-            text=f"{conf * 100}% Confidence Ellipse",
+            line={"color": "#EF4444", "width": 1.5, "dash": "dashdot"},
+            name=f"{conf * 100:.1f}% Confidence Ellipse",
+            text=[f"<b>{conf * 100:.1f}% Confidence Ellipse</b><br>Nominal Headway Envelope"]
+            * len(x),
             hoverinfo="text",
             showlegend=False,
         )
     )
 
-    # Locate unique groups
-    unique_groups = []
-    unique_groups_df = series_df.drop_duplicates(bus_names_all)
-    for i in range(unique_groups_df.shape[0]):
-        group = [unique_groups_df.iloc[i][bus_names_all[k]] for k in range(3)]
-        unique_groups.append(group)
-
-    for group in unique_groups:
-        # Build indexing conditions
-        conds = [series_df[bus_names_all[k]] == group[k] for k in range(3)]
-        final_cond = True
-        for cond in conds:
-            final_cond &= cond
-        group_df = series_df.loc[final_cond]
+    for (b1, b2, b3), group_df in series_df.groupby(["bus1", "bus2", "bus3"], sort=False):
         group_df = group_df.sort_values("datetime")
+        name = f"{b1}-{b2}-{b3}"
+        color = get_group_color(b1, b2)
 
-        name = str(group[0])
-        for bus in group[1:]:
-            if bus != 0:
-                name += "-" + str(bus)
-            else:
-                break
-
-        # Head point
-        graph.add_trace(
-            go.Scatter(
-                name=name,
-                x=[group_df.hw12.iloc[-1]],
-                y=[group_df.hw23.iloc[-1]],
-                mode="markers",
-                marker={"size": 10, "color": "black"},
-                showlegend=False,
-                hoverinfo="none",
-            )
-        )
-
-        # Build group trace
+        # 1. Continuous dynamic trajectory line over time
         graph.add_trace(
             go.Scatter(
                 name=name,
                 x=group_df.hw12,
                 y=group_df.hw23,
                 mode="lines+markers",
-                line={"width": 3, "color": colors[group_df.bus2.iloc[0] % len(colors)]},
+                line={"width": 2, "color": color},
+                marker={"size": 4.5, "color": color},
+                showlegend=False,
                 text=[
-                    "<b>Bus group: "
-                    + str(name)
-                    + "</b> <br>"
-                    + "Headways: ["
-                    + str(row.hw12)
-                    + ","
-                    + str(row.hw23)
-                    + "]<br>"
-                    + row.datetime
+                    f"<b>Triplet: {name}</b><br>HW12: {row.hw12:.0f}s | HW23: {row.hw23:.0f}s<br>Time: {str(row.datetime)[:19]}"
                     for row in group_df.itertuples()
                 ],
                 hoverinfo="text",
             )
         )
-    return graph
 
-
-def build_m_dist_graph(series_df, line, dim=1):
-    graph = go.Figure()
-
-    # Read dict (bounded retries - never spin forever)
-    conf = 0.98
-    for _ in range(5):
-        try:
-            with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
-                hyperparams = json.load(f)
-            conf = hyperparams.get(line, {}).get("conf", 0.98)
-            break
-        except Exception:
-            time.sleep(0.2)
-
-    # Set title and layout
-    graph.update_layout(
-        title=None,
-        uirevision="md",
-        legend_title="<b>Group ids</b>",
-        xaxis={"nticks": 20},
-        yaxis={"title_text": "Mahalanobis Distance", "nticks": 20},
-        legend={"x": -0.02, "y": -0.05, "orientation": "h"},
-        margin={"r": 0, "l": 0, "t": 40, "b": 0},
-        hovermode="closest",
-    )
-
-    if series_df.shape[0] < 1:
-        return graph
-
-    # All bus names
-    bus_names_all = ["bus" + str(i) for i in range(1, 8 + 2)]
-    hw_names_all = ["hw" + str(i) + str(i + 1) for i in range(1, 8 + 1)]
-
-    # Min and max datetimes
-    min_time = series_df.datetime.min()
-    max_time = series_df.datetime.max()
-
-    # Locate unique groups
-    unique_groups = []
-    unique_groups_df = series_df.drop_duplicates(bus_names_all)
-    for i in range(unique_groups_df.shape[0]):
-        group = [unique_groups_df.iloc[i][bus_names_all[k]] for k in range(8 + 1)]
-        unique_groups.append(group)
-
-    last_dim = 0
-    for group in unique_groups:
-        # Build indexing conditions
-        conds = [series_df[bus_names_all[k]] == group[k] for k in range(8 + 1)]
-        final_cond = True
-        for cond in conds:
-            final_cond &= cond
-        group_df = series_df.loc[final_cond]
-        group_df = group_df.sort_values("datetime")
-
-        # Dimension
-        dim = group_df.iloc[0].dim
-        color = colors[dim]
-
-        # Dim threshold
-        m_th = math.sqrt(chi2.ppf(conf, df=dim))
-
-        if dim != last_dim:
-            graph.add_shape(
-                name=f"{dim}Dim MD Threshold",
-                type="line",
-                x0=min_time,
-                y0=m_th,
-                x1=max_time,
-                y1=m_th,
-                line={
-                    "color": color,
-                    "width": 2,
-                    "dash": "dashdot",
-                },
-            )
-
-        last_dim = dim
-
-        name = str(group[0])
-        for bus in group[1:]:
-            if bus != 0:
-                name += "-" + str(bus)
-            else:
-                break
-
-        hw_values = []
-        for _index, row in group_df.iterrows():
-            hw_value = str(row.hw12)
-            for hw_name in hw_names_all[1:dim]:
-                hw_value += "," + str(row[hw_name])
-            hw_values.append(hw_value)
-
-        # Build group trace
+        # 2. Current head marker (latest point in trajectory)
         graph.add_trace(
             go.Scatter(
                 name=name,
-                x=group_df.datetime,
-                y=group_df.m_dist,
-                mode="lines+markers",
-                line={"width": 3, "color": color},
+                x=[group_df.hw12.iloc[-1]],
+                y=[group_df.hw23.iloc[-1]],
+                mode="markers",
+                marker={"size": 8.5, "color": color, "line": {"color": "#FFFFFF", "width": 1.5}},
+                showlegend=False,
                 text=[
-                    "<b>Bus group: "
-                    + str(name)
-                    + "</b> <br>"
-                    + "Headways: ["
-                    + hw_values[i]
-                    + "]<br>"
-                    + group_df.iloc[i].datetime
-                    for i in range(group_df.shape[0])
+                    f"<b>Current Head: {name}</b><br>Latest HW: [{group_df.hw12.iloc[-1]:.0f}s, {group_df.hw23.iloc[-1]:.0f}s]<br>Time: {str(group_df.datetime.iloc[-1])[:19]}"
                 ],
                 hoverinfo="text",
             )
         )
+
+    return graph
+
+
+def build_m_dist_graph(series_df, line, dim=1, conf=0.98):
+    graph = go.Figure()
+
+    dim_label = "2D Triplet" if dim == 2 else "1D Pair"
+    graph.update_layout(
+        title=None,
+        uirevision=f"md_{dim}",
+        showlegend=False,
+        hovermode="closest",
+        margin={"r": 15, "l": 45, "t": 10, "b": 22},
+        xaxis={
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "nticks": 8,
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
+        yaxis={
+            "title": {"text": f"M-Dist {dim_label} (σ)", "font": {"size": 10, "color": "#94A3B8"}},
+            "showgrid": True,
+            "gridcolor": "rgba(255,255,255,0.06)",
+            "tickfont": {"size": 9.5, "family": "JetBrains Mono, monospace"},
+        },
+    )
+
+    series_df = series_df.loc[series_df.dim == dim]
+    if series_df.shape[0] < 1:
+        return graph
+
+    min_time = series_df.datetime.min()
+    max_time = series_df.datetime.max()
+
+    m_th = math.sqrt(chi2.ppf(conf, df=dim))
+
+    # Add hoverable red anomaly threshold line
+    graph.add_trace(
+        go.Scatter(
+            x=[min_time, max_time],
+            y=[m_th, m_th],
+            mode="lines",
+            line={"color": "#EF4444", "width": 1.5, "dash": "dashdot"},
+            name=f"Anomaly Threshold ({conf * 100:.1f}%, df={dim})",
+            text=[
+                f"<b>Anomaly Threshold ({conf * 100:.1f}%, df={dim})</b><br>Limit: {m_th:.2f}σ",
+                f"<b>Anomaly Threshold ({conf * 100:.1f}%, df={dim})</b><br>Limit: {m_th:.2f}σ",
+            ],
+            hoverinfo="text",
+            showlegend=False,
+        )
+    )
+
+    if dim == 2:
+        for (b1, b2, b3), group_df in series_df.groupby(["bus1", "bus2", "bus3"], sort=False):
+            group_df = group_df.sort_values("datetime")
+            name = f"{b1}-{b2}-{b3}"
+            color = get_group_color(b1, b2)
+
+            graph.add_trace(
+                go.Scatter(
+                    name=name,
+                    x=group_df.datetime,
+                    y=group_df.m_dist,
+                    mode="lines+markers",
+                    line={"width": 2, "color": color},
+                    marker={"size": 4.5, "color": color},
+                    showlegend=False,
+                    text=[
+                        f"<b>Triplet: {name}</b><br>M-Dist (2D): {row.m_dist:.2f}σ (Th: {m_th:.2f}σ)<br>Anomaly: {'🔴 YES' if row.m_dist > m_th else '🟢 NO'}<br>Time: {str(row.datetime)[:19]}"
+                        for row in group_df.itertuples()
+                    ],
+                    hoverinfo="text",
+                )
+            )
+    else:
+        for (b1, b2), group_df in series_df.groupby(["bus1", "bus2"], sort=False):
+            group_df = group_df.sort_values("datetime")
+            name = f"{b1}-{b2}"
+            color = get_group_color(b1, b2)
+
+            graph.add_trace(
+                go.Scatter(
+                    name=name,
+                    x=group_df.datetime,
+                    y=group_df.m_dist,
+                    mode="lines+markers",
+                    line={"width": 2.5, "color": color},
+                    marker={"size": 5, "color": color},
+                    showlegend=False,
+                    text=[
+                        f"<b>Group: {name}</b><br>M-Dist (1D): {row.m_dist:.2f}σ (Th: {m_th:.2f}σ)<br>Anomaly: {'🔴 YES' if row.m_dist > m_th else '🟢 NO'}<br>Time: {str(row.datetime)[:19]}"
+                        for row in group_df.itertuples()
+                    ],
+                    hoverinfo="text",
+                )
+            )
 
     return graph
 
@@ -1480,160 +1461,89 @@ def _empty_figure(message):
 # CALLBACKS
 
 
-# CALLBACK 0b - Title
-@app.callback(
-    [Output("tab-title" + location, "children")],
-    [
-        Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
-        Input("url", "pathname"),
-    ],
-)
-def update_title_sliders(n_intervals, n_clicks, pathname):
-    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-
-    now = dt.now()
-    now = now.replace(microsecond=0)
-
-    return [f"Line {line} — updated {now.time()}"]
-
-
-# CALLBACK 0c - Sliders update
-@app.callback(
-    [Output("hidden-div" + location, "children")],
-    [
-        Input("conf-slider" + location, "value"),
-        Input("size-th-slider" + location, "value"),
-        Input("url", "pathname"),
-    ],
-)
-def update_hyperparams(conf, size_th, pathname):
-    line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-    try:
-        if (conf == 0) | (size_th == 0):
-            return [html.H1("", className="box subtitle is-6")]
-
-        conf = round(conf / 100, 3)
-
-        # Read dict
-        with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
-            hyperparams = json.load(f)
-
-        # Update hyperparams
-        hyperparams[line]["conf"] = conf
-        hyperparams[line]["size_th"] = size_th
-
-        # Write dict
-        with open(resolve_path(location + "/Data/Anomalies/hyperparams.json"), "w") as fp:
-            json.dump(hyperparams, fp)
-
-    except:  # noqa: E722
-        pass
-
-    return [""]
-
-
-# CALLBACK 1 - Buses Position
+# CALLBACK 0a - Live Map Positions
 @app.callback(
     [Output("map" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
         Input("theme-store", "data"),
-        Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_buses_position(n_intervals, n_clicks, pathname, hoverData, theme="dark"):
+def update_buses_position(n_intervals, pathname, theme="dark"):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-
-    try:
-        if "text" in hoverData["points"][0].keys():
-            hover_buses = [
-                int(hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0])
-            ]
-        else:
-            hws_burst = read_df("hws_burst", line=line)
-
-            dest = hoverData["points"][0]["y"][3:-1]
-            x = hoverData["points"][0]["x"]
-
-            direction = 1 if dest == lines_dict[line]["destinations"][1] else 2
-
-            buses = hws_burst[
-                (hws_burst.line == line)
-                & (hws_burst.direction == direction)
-                & (hws_burst.busB_ttls >= x)
-            ].sort_values("busB_ttls")
-            hover_buses = [buses.busA.iloc[0], buses.busB.iloc[0]]
-
-    except:  # noqa: E722
-        hover_buses = None
-
     burst = read_df("burst", line=line)
-
-    # Line dataframe
-    line_burst = burst.loc[burst.line == line]
-    if hover_buses:
-        line_burst = line_burst[line_burst.bus.isin(hover_buses)]
-
-    if line_burst.shape[0] < 1:
-        return [_empty_figure("No buses were found inside the line.")]
-
-    # Create map (theme-aware tiles & markers)
-    return [build_map(line_burst, theme)]
+    line_burst = (
+        burst.loc[burst.line.astype(str) == str(line)] if not burst.empty else pd.DataFrame()
+    )
+    return [build_map(line_burst, line, theme=theme)]
 
 
-# CALLBACK 2 - Buses headways representation
+# CALLBACK 1 - Active Route Pills & Tab Title
+@app.callback(
+    [
+        Output("route-pills-container" + location, "children"),
+        Output("tab-title" + location, "children"),
+    ],
+    [Input("url", "pathname")],
+)
+def update_active_route_pills(pathname):
+    active_line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
+    lines_avail = (
+        ["1", "44", "82", "132", "133", "F", "G"]
+        if location == "Madrid"
+        else ["18", "24", "25", "73"]
+    )
+    pills = []
+    for line in lines_avail:
+        is_active = str(line) == str(active_line)
+        pill_class = "route-pill active" if is_active else "route-pill"
+        href = f"/realtime/{location.lower()}/{line}"
+        pills.append(dcc.Link(f"Line {line}", href=href, className=pill_class))
+
+    now_time = dt.datetime.now().strftime("%H:%M:%S")
+    tab_title = f"Line {active_line} — updated {now_time}"
+    return [pills, tab_title]
+
+
+# CALLBACK 2 - Headway Corridor
 @app.callback(
     [Output("flat-hws" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
         Input("theme-store", "data"),
     ],
 )
-def update_flat_hws(n_intervals, n_clicks, pathname, theme="dark"):
+def update_flat_hws(n_intervals, pathname, theme="dark"):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-
-    hws_burst = read_df("hws_burst", line=line)
-
-    line_hws = hws_burst.loc[hws_burst.line == line]
-
-    if line_hws.shape[0] < 1:
-        return [_empty_figure("No headway data available for this line right now.")]
-
-    # Create graph
-    flat_hws_graph = build_graph(line_hws)
-
-    # Apply theme styling and return the figure directly (keeps graph mounted, no flicker)
-    flat_hws_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
-    return [flat_hws_graph]
+    hws = read_df("hws_burst", line=line)
+    line_hws = hws.loc[(hws.line == line) & (hws.hw_pos > 0)] if not hws.empty else pd.DataFrame()
+    return [build_graph(line_hws, theme=theme)]
 
 
-# CALLBACK 3 - 1D Headways Time Series
+# CALLBACK 3 - 1D Headways Time Series (Reacts instantly to conf slider)
 @app.callback(
     [Output("time-series-hws" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
         Input("theme-store", "data"),
+        Input("conf-slider" + location, "value"),
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_time_series_hws(n_intervals, n_clicks, pathname, theme="dark", hoverData=None):
+def update_time_series_hws(n_intervals, pathname, theme="dark", conf_val=98, hoverData=None):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-    cached = _cached_figure("ts1", line)
-    if cached[1]:
-        return [cached[0]]
+    conf = float(conf_val) / 100.0 if conf_val > 1 else float(conf_val)
 
     hover_buses = _parse_hover_buses(hoverData, line)
-
     series = read_df("series", line=line)
-
-    line_series = series.loc[(series.line == line) & (series.dim == 1)]
+    line_series = (
+        series.loc[(series.line == line) & (series.dim == 1)]
+        if (series is not None and not series.empty)
+        else pd.DataFrame()
+    )
 
     if hover_buses:
         if len(hover_buses) == 1:
@@ -1641,217 +1551,157 @@ def update_time_series_hws(n_intervals, n_clicks, pathname, theme="dark", hoverD
                 (line_series.bus1 == hover_buses[0]) | (line_series.bus2 == hover_buses[0])
             ]
         elif len(hover_buses) == 2:
-            line_series = line_series.loc[(line_series.bus1 == hover_buses[0])]
+            line_series = line_series.loc[
+                (line_series.bus1 == hover_buses[0]) & (line_series.bus2 == hover_buses[1])
+            ]
 
     if line_series.shape[0] < 1:
-        return [
-            _empty_figure(
-                "No headways to analyse. There are less than 2 buses inside each line direction."
-            )
-        ]
+        return [_empty_figure("No headways to analyse. Waiting for active vehicle telemetry.")]
 
     model = _get_hour_range_and_model(line, 1)
     if model is None:
         return [_empty_figure("Hour range for current time not defined. Waiting till 7am.")]
 
-    # Read dict (bounded retries - never spin forever)
-    conf = 0.98
-    for _ in range(5):
-        try:
-            with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
-                hyperparams = json.load(f)
-            conf = hyperparams.get(line, {}).get("conf", 0.98)
-            break
-        except Exception:
-            time.sleep(0.2)
-
-    time_series_graph = build_time_series_graph(line_series, model, conf)
-
+    time_series_graph = build_time_series_graph(line_series, model, conf=conf)
     _store_figure("ts1", line, time_series_graph)
     time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 
 
-# CALLBACK 4 - 2D Headways Time Series
+# CALLBACK 4 - 2D Headways Dynamics (Reacts instantly to conf slider)
 @app.callback(
     [Output("2d-time-series-hws" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
         Input("theme-store", "data"),
+        Input("conf-slider" + location, "value"),
         Input("flat-hws" + location, "clickData"),
     ],
 )
-def update_2d_time_series_hws(n_intervals, n_clicks, pathname, theme="dark", hoverData=None):
+def update_2d_time_series_hws(n_intervals, pathname, theme="dark", conf_val=98, hoverData=None):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-    cached = _cached_figure("ts2", line)
-    if cached[1]:
-        return [cached[0]]
+    conf = float(conf_val) / 100.0 if conf_val > 1 else float(conf_val)
 
     hover_buses = _parse_hover_buses(hoverData, line)
-
     series = read_df("series", line=line)
-
-    line_series = series.loc[(series.line == line) & (series.dim == 2)]
+    line_series = (
+        series.loc[(series.line == line) & (series.dim == 2)]
+        if (series is not None and not series.empty)
+        else pd.DataFrame()
+    )
 
     if hover_buses:
         if len(hover_buses) == 1:
-            line_series = line_series.loc[(line_series.bus2 == hover_buses[0])]
+            line_series = line_series.loc[
+                (line_series.bus1 == hover_buses[0])
+                | (line_series.bus2 == hover_buses[0])
+                | (line_series.bus3 == hover_buses[0])
+            ]
         elif len(hover_buses) == 2:
-            return [html.H1("Click a bus, links not supported.", className="title is-5")]
+            line_series = line_series.loc[
+                (line_series.bus1 == hover_buses[0]) & (line_series.bus2 == hover_buses[1])
+            ]
 
     if line_series.shape[0] < 1:
-        return [_empty_figure("No 2d headways to analyse. Click a bus between two buses.")]
+        return [_empty_figure("No 2D headway triplets to analyse. Waiting for vehicle telemetry.")]
 
     model = _get_hour_range_and_model(line, 2)
     if model is None:
-        return [_empty_figure("2D Model for this hour range not available.")]
+        return [_empty_figure("Hour range for current time not defined. Waiting till 7am.")]
 
-    # Read dict (bounded retries - never spin forever)
-    conf = 0.98
-    for _ in range(5):
-        try:
-            with open(resolve_path(location + "/Data/Anomalies/hyperparams.json")) as f:
-                hyperparams = json.load(f)
-            conf = hyperparams.get(line, {}).get("conf", 0.98)
-            break
-        except Exception:
-            time.sleep(0.2)
-
-    time_series_graph = build_2d_time_series_graph(line_series, model, conf)
-
+    time_series_graph = build_2d_time_series_graph(line_series, model, conf=conf)
     _store_figure("ts2", line, time_series_graph)
     time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 
 
-# CALLBACK 5 - Mahalanobis Distance series (adapts to the active 1D/2D tab on its left)
+# CALLBACK 5 - Mahalanobis Distance series (Adapts to 1D/2D tab & conf slider)
 @app.callback(
     [Output("mdist-hws" + location, "figure")],
     [
         Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
         Input("theme-store", "data"),
         Input("tabs-series" + location, "value"),
+        Input("conf-slider" + location, "value"),
         Input("flat-hws" + location, "clickData"),
     ],
 )
 def update_mdist_series(
-    n_intervals, n_clicks, pathname, theme="dark", tab_series=None, hoverData=None
+    n_intervals, pathname, theme="dark", tab_series=None, conf_val=98, hoverData=None
 ):
-    line = pathname.split("/")[-1] if pathname else "1"
-    dim = 2 if (tab_series and "ts2" in str(tab_series)) else 1
-    cache_key = "md_" + str(dim)
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
-    cached = _cached_figure(cache_key, line)
-    if cached[1]:
-        return [cached[0]]
+    dim = 2 if (tab_series and "ts2" in str(tab_series)) else 1
+    conf = float(conf_val) / 100.0 if conf_val > 1 else float(conf_val)
 
-    try:
-        try:
-            if "text" in hoverData["points"][0].keys():
-                hover_buses = [
-                    int(hoverData["points"][0]["text"].split("<b>Bus: ")[1].split("</b>")[0])
-                ]
-            else:
-                hws_burst = read_df("hws_burst", line=line)
+    hover_buses = _parse_hover_buses(hoverData, line)
+    series = read_df("series", line=line)
+    line_series = (
+        series.loc[(series.line == line) & (series.dim == dim)]
+        if (series is not None and not series.empty)
+        else pd.DataFrame()
+    )
 
-                dest = hoverData["points"][0]["y"][3:-1]
-                x = hoverData["points"][0]["x"]
-
-                direction = 1 if dest == lines_dict[line]["destinations"][1] else 2
-
-                buses = hws_burst[
-                    (hws_burst.line == line)
-                    & (hws_burst.direction == direction)
-                    & (hws_burst.busB_ttls >= x)
-                ].sort_values("busB_ttls")
-                hover_buses = [buses.busA.iloc[0], buses.busB.iloc[0]]
-        except:  # noqa: E722
-            hover_buses = None
-
-        series = read_df("series", line=line)
-
-        line_series = series.loc[(series.line == line) & (series.dim == dim)]
-
-        if hover_buses:
-            if len(hover_buses) == 1:
-                line_series = line_series.loc[
-                    (line_series.bus1 == hover_buses[0])
-                    | (line_series.bus2 == hover_buses[0])
-                    | (line_series.bus3 == hover_buses[0])
-                    | (line_series.bus4 == hover_buses[0])
-                    | (line_series.bus5 == hover_buses[0])
-                    | (line_series.bus6 == hover_buses[0])
-                    | (line_series.bus7 == hover_buses[0])
-                    | (line_series.bus8 == hover_buses[0])
-                    | (line_series.bus9 == hover_buses[0])
-                ]
-
-            elif len(hover_buses) == 2:
-                line_series = line_series.loc[
-                    ((line_series.bus1 == hover_buses[0]) & (line_series.bus2 == hover_buses[1]))
-                    | ((line_series.bus2 == hover_buses[0]) & (line_series.bus3 == hover_buses[1]))
-                    | ((line_series.bus3 == hover_buses[0]) & (line_series.bus4 == hover_buses[1]))
-                    | ((line_series.bus4 == hover_buses[0]) & (line_series.bus5 == hover_buses[1]))
-                    | ((line_series.bus5 == hover_buses[0]) & (line_series.bus6 == hover_buses[1]))
-                    | ((line_series.bus6 == hover_buses[0]) & (line_series.bus7 == hover_buses[1]))
-                    | ((line_series.bus7 == hover_buses[0]) & (line_series.bus8 == hover_buses[1]))
-                    | ((line_series.bus8 == hover_buses[0]) & (line_series.bus9 == hover_buses[1]))
-                ]
-
-        if line_series.shape[0] < 1:
-            return [
-                _empty_figure(
-                    "No headways to analyse. There are less than 2 buses inside each line direction."
-                )
+    if hover_buses:
+        if len(hover_buses) == 1:
+            line_series = line_series.loc[
+                (line_series.bus1 == hover_buses[0])
+                | (line_series.bus2 == hover_buses[0])
+                | (line_series.bus3 == hover_buses[0])
+            ]
+        elif len(hover_buses) == 2:
+            line_series = line_series.loc[
+                (line_series.bus1 == hover_buses[0]) & (line_series.bus2 == hover_buses[1])
             ]
 
-        # Create mh dist graph
-        m_dist_graph = build_m_dist_graph(line_series, line)
-
-        _store_figure(cache_key, line, m_dist_graph)
-        m_dist_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
-        return [m_dist_graph]
-    except:  # noqa: E722
+    if line_series.shape[0] < 1:
         return [
             _empty_figure(
                 "No headways to analyse. There are less than 2 buses inside each line direction."
             )
         ]
 
+    m_dist_graph = build_m_dist_graph(line_series, line, dim=dim, conf=conf)
+    _store_figure(f"md_{dim}", line, m_dist_graph)
+    m_dist_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
+    return [m_dist_graph]
 
-# CALLBACK 6 - Anomalies series
+
+# CALLBACK 6 - Anomalies Events Table
 @app.callback(
     [Output("anom-hws-div" + location, "children")],
     [
         Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
+        Input("conf-slider" + location, "value"),
+        Input("size-th-slider" + location, "value"),
     ],
 )
-def update_anomalies_table(n_intervals, n_clicks, pathname):
+def update_anomalies_table(n_intervals, pathname, conf_val=98, size_th=3):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
+    conf = float(conf_val) / 100.0 if conf_val > 1 else float(conf_val)
+    m_th = math.sqrt(chi2.ppf(conf, df=1))
 
-    anomalies = read_df("anomalies", line=line)
-
-    if anomalies.shape[0] < 1:
-        return [
-            html.Div(
-                className="box",
-                style={"height": box_height},
-                children=[html.H2("No anomalies detected yet.", className="title is-5")],
+    series = read_df("series", line=line)
+    if series is not None and not series.empty:
+        line_anoms = series.loc[
+            (series.line == line) & (series.dim == 1) & (series.m_dist > m_th)
+        ].copy()
+        if not line_anoms.empty:
+            line_anoms["anom_size"] = size_th
+            anoms_table = build_anoms_table(line_anoms)
+        else:
+            anoms_table = html.P(
+                "No anomalies detected at current threshold.",
+                style={"color": "var(--text-muted)", "padding": "1rem", "textAlign": "center"},
             )
-        ]
+    else:
+        anoms_table = html.P(
+            "No telemetry records available.",
+            style={"color": "var(--text-muted)", "padding": "1rem", "textAlign": "center"},
+        )
 
-    line_anoms = anomalies.loc[anomalies.line == line]
-
-    # Create anomalies table
-    anoms_table = build_anoms_table(line_anoms)
-
-    # And return all of them
     return [
         html.Div(
             style={"height": "100%", "width": "100%", "overflowY": "auto", "padding": "4px"},
@@ -1860,105 +1710,105 @@ def update_anomalies_table(n_intervals, n_clicks, pathname):
     ]
 
 
-# CALLBACK 7 - KPI cards
+# CALLBACK 7 - KPI Cards (Reacts instantly to conf and k sliders)
 @app.callback(
     [
-        Output("kpi-fleetMadrid", "children"),
-        Output("kpi-headwayMadrid", "children"),
-        Output("kpi-qosMadrid", "children"),
-        Output("kpi-anomsMadrid", "children"),
+        Output("kpi-fleet" + location, "children"),
+        Output("kpi-headway" + location, "children"),
+        Output("kpi-qos" + location, "children"),
+        Output("kpi-filtered" + location, "children"),
+        Output("kpi-anoms" + location, "children"),
     ],
     [
         Input("interval-component" + location, "n_intervals"),
-        Input("update-button" + location, "n_clicks"),
         Input("url", "pathname"),
+        Input("conf-slider" + location, "value"),
+        Input("size-th-slider" + location, "value"),
     ],
 )
-def update_kpis(n_intervals, n_clicks, pathname):
+def update_kpis(n_intervals, pathname, conf_val=98, size_th=3):
     line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
+    conf = float(conf_val) / 100.0 if conf_val > 1 else float(conf_val)
+    m_th = math.sqrt(chi2.ppf(conf, df=1))
+
     try:
         hws = read_df("hws_burst", line=line)
-        hws_line = hws.loc[hws.line == line]
-        line_hws = hws_line.loc[hws_line.hw_pos > 0]
+        burst = read_df("burst", line=line)
 
-        fleet = int(hws_line["busB"].nunique())
-        mean_hw = int(line_hws.headway.mean()) if line_hws.shape[0] > 0 else 0
+        hws_line = hws.loc[hws.line == line] if not hws.empty else pd.DataFrame()
+        line_hws = hws_line.loc[hws_line.hw_pos > 0] if not hws_line.empty else pd.DataFrame()
 
-        # QoS regularity: share of observations within 2 sigma of the modeled mean
-        now = dt.now()
-        day_type = "LA" if now.weekday() <= 4 else ("SA" if now.weekday() == 5 else "FE")
-        hour_ranges = [[7, 9], [9, 11], [11, 13], [13, 15], [15, 17], [17, 19], [19, 21], [21, 23]]
-        hour_range = None
-        for h_range in hour_ranges:
-            if h_range[0] <= now.hour < h_range[1]:
-                hour_range = str(h_range[0]) + "-" + str(h_range[1])
-                break
+        fleet = int(hws_line["busB"].nunique()) if not hws_line.empty else 0
+        total_reporting = (
+            int(burst.loc[burst.line.astype(str) == str(line)]["bus"].nunique())
+            if not burst.empty
+            else fleet
+        )
+        filtered = max(0, total_reporting - fleet)
 
-        if hour_range and line in models_params_dict and day_type in models_params_dict[line]:
-            model = models_params_dict[line][day_type].get(hour_range, {})
-            m1 = model.get("1", {})
-            if m1 and line_hws.shape[0] > 0:
-                mu = float(m1.get("mean", 0))
-                std = float(m1.get("cov_matrix", 1))
-                if std > 0:
-                    within = ((line_hws.headway - mu).abs() <= 2 * std).mean()
-                    qos = int(round(within * 100))
-                else:
-                    qos = 100
-            else:
-                qos = 0
+        mean_hw = int(line_hws.headway.mean()) if not line_hws.empty else 0
+
+        # QoS regularity
+        model = _get_hour_range_and_model(line, 1)
+        if model and not line_hws.empty:
+            mean = (
+                float(model["mean"])
+                if not isinstance(model["mean"], list)
+                else float(model["mean"][0])
+            )
+            std = (
+                float(model["cov_matrix"])
+                if not isinstance(model["cov_matrix"], list)
+                else float(model["cov_matrix"][0][0])
+            )
+            within_bounds = line_hws.headway.apply(lambda hw: abs(hw - mean) <= 2 * std)
+            qos = int(round(100 * within_bounds.sum() / len(within_bounds)))
         else:
-            qos = 0
+            qos = 100
 
-        anoms = read_df("anomalies", line=line)
-        anoms_line = anoms.loc[anoms.line == line] if anoms.shape[0] > 0 else anoms
-        n_anoms = int(anoms_line.shape[0])
+        # Live anomaly count based on slider threshold
+        series = read_df("series", line=line)
+        if series is not None and not series.empty:
+            line_series = series.loc[(series.line == line) & (series.dim == 1)]
+            n_anoms = int(
+                len(line_series.loc[line_series.m_dist > m_th].drop_duplicates(["bus1", "bus2"]))
+            )
+        else:
+            n_anoms = 0
 
-        return [str(fleet), f"{mean_hw}s", f"{qos}%", str(n_anoms)]
+        return [str(fleet), f"{mean_hw}s", f"{qos}%", str(filtered), str(n_anoms)]
     except Exception:
-        return ["—", "—", "—", "—"]
+        return ["—", "—", "—", "—", "—"]
 
 
-# CALLBACK 8 - Analytics tab switching (show/hide panels)
+# CALLBACK 8 - Tab Switching
 @app.callback(
     [
         Output("time-series-hws" + location, "style"),
         Output("2d-time-series-hws" + location, "style"),
-        Output("mdist-hws" + location, "style"),
-        Output("anom-hws-div" + location, "style"),
     ],
-    [Input("analytics-tabs" + location, "value")],
+    [Input("tabs-series" + location, "value")],
 )
-def switch_analytics_tab(tab):
-    # Use visibility (not display) so Plotly keeps rendering hidden graphs with real dimensions
-    hidden = {"visibility": "hidden", "position": "absolute", "height": "52vh", "width": "100%"}
-    visible = {"height": "52vh", "position": "relative", "width": "100%"}
+def switch_series_tab(tab):
+    visible = {"display": "block", "height": "100%", "width": "100%"}
+    hidden = {"display": "none"}
     return [
         visible if tab == "ts1" + location else hidden,
         visible if tab == "ts2" + location else hidden,
-        visible if tab == "md" + location else hidden,
-        {"height": "52vh", "overflowY": "auto"} if tab == "an" + location else hidden,
     ]
 
 
-# CALLBACK 9 - Dynamic Route Pills Active State
+# CALLBACK 9 - Anomaly Tab Switching
 @app.callback(
-    Output("route-pills-container" + location, "children"),
-    [Input("url", "pathname")],
+    [Output("mdist-hws" + location, "style"), Output("anom-hws-div" + location, "style")],
+    [Input("tabs-anoms" + location, "value")],
 )
-def update_active_route_pills(pathname):
-    current_line = pathname.split("/")[-1] if pathname else "1"
-    all_lines = ["1", "44", "82", "132", "133"]
-    pills = []
-    for line in all_lines:
-        is_active = line == current_line
-        cls = "route-btn active" if is_active else "route-btn"
-        pills.append(
-            dcc.Link(
-                f"Line {line}",
-                href=f"/realtime/madrid/{line}",
-                className=cls,
-                style={"padding": "0.45rem 0.9rem", "minWidth": "0", "fontSize": "0.85rem"},
-            )
-        )
-    return pills
+def switch_anoms_tab(tab):
+    visible = {"display": "block", "height": "100%", "width": "100%"}
+    hidden = {"display": "none"}
+    return [
+        visible if tab == "md" + location else hidden,
+        {"display": "block", "height": "100%", "overflowY": "auto"}
+        if tab == "an" + location
+        else hidden,
+    ]
