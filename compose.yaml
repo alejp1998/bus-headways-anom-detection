@@ -2,7 +2,7 @@
 #
 # Three services sharing one data volume:
 #   1. dashboard       — Dash web UI on :8050
-#   2. london-collector— live TfL polling + anomaly inference (40s cycle)
+#   2. london-collector— live TfL polling + anomaly inference (5s cycle)
 #   3. madrid-watchdog — EMT MobilityLabs activation poller (until approved)
 #
 # Usage:

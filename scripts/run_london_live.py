@@ -446,7 +446,7 @@ def main() -> int:
         "--once", action="store_true", help="Run a single collection cycle and exit"
     )
     parser.add_argument(
-        "--interval", type=int, default=40, help="Polling interval in seconds (default: 40)"
+        "--interval", type=int, default=5, help="Polling interval in seconds (default: 5)"
     )
     args = parser.parse_args()
 

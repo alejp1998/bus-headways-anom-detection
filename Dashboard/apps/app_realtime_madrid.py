@@ -786,13 +786,12 @@ def calc_map_params(line="25"):
     """Compute bounding box center, optimal zoom, and camera bearing.
 
     Ensures the ENTIRE bus line fits comfortably inside the map card with
-    generous margins on left, right, top, and bottom so no stops or vehicles
-    are clipped or cut off by card edges.
+    wide margins on left, right, top, and bottom.
     """
     shapes = line_shapes.loc[line_shapes.line_sn.astype(str) == str(line)]
     if shapes.empty:
         center_x, center_y = (-0.1278, 51.5074) if location == "London" else (-3.7038, 40.4168)
-        return center_x, center_y, 10.8, 0.0
+        return center_x, center_y, 10.4, 0.0
 
     # 1. Heading of Direction 1 (start -> end)
     d1 = shapes.loc[shapes.direction == 1]
@@ -840,14 +839,14 @@ def calc_map_params(line="25"):
     center_lon = mean_lon + mid_x_km / (math.cos(math.radians(mean_lat)) * 111.32)
     center_lat = mean_lat + mid_y_km / 111.32
 
-    # 5. Targeted Zoom: use 420px effective width & 200px effective height
-    # so the route occupies at most ~55% of the card area, leaving ~22%
-    # generous empty margin on EACH side of the route line!
+    # 5. Targeted Zoom: use 340px effective width & 160px effective height
+    # to guarantee the route spans at most ~45% of the card width, leaving
+    # massive empty margins on both sides!
     world_circumference_km = 40075.0 * math.cos(math.radians(center_lat))
-    zoom_x = math.log2((420.0 * world_circumference_km) / (256.0 * span_x_km))
-    zoom_y = math.log2((200.0 * world_circumference_km) / (256.0 * span_y_km))
+    zoom_x = math.log2((340.0 * world_circumference_km) / (256.0 * span_x_km))
+    zoom_y = math.log2((160.0 * world_circumference_km) / (256.0 * span_y_km))
     optimal_zoom = min(zoom_x, zoom_y)
-    optimal_zoom = round(max(9.2, min(13.2, optimal_zoom)), 2)
+    optimal_zoom = round(max(8.8, min(12.5, optimal_zoom)), 2)
 
     return round(center_lon, 5), round(center_lat, 5), optimal_zoom, round(bearing, 1)
 
@@ -883,7 +882,7 @@ def build_map(line_df, line="1", theme="dark"):
         margin={"r": 0, "l": 0, "t": 0, "b": 0},
         hovermode="closest",
         showlegend=False,
-        uirevision=f"map_{location}_{line}",
+        uirevision=f"corridor_v5_{location}_{line}",
         hoverlabel={
             "bgcolor": hover_bg,
             "bordercolor": "rgba(139, 92, 246, 0.8)",
@@ -1116,7 +1115,7 @@ def build_graph(line_hws, theme="dark"):
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         margin={"r": 20, "l": 80, "t": 15, "b": 35},
-        uirevision=f"map_{location}_{line}",
+        uirevision=f"corridor_v5_{location}_{line}",
         showlegend=False,
         hovermode="closest",
         xaxis={
