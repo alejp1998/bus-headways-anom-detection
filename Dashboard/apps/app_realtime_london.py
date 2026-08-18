@@ -391,9 +391,19 @@ def get_layout(active_line="25"):
                                 className="flex-between",
                                 style={"marginBottom": "0.25rem"},
                                 children=[
-                                    html.H3(
-                                        "Fleet Spatial Map",
-                                        style={"fontSize": "0.95rem", "margin": 0},
+                                    html.Div(
+                                        style={
+                                            "display": "flex",
+                                            "alignItems": "center",
+                                            "gap": "0.5rem",
+                                        },
+                                        children=[
+                                            html.H3(
+                                                "Fleet Spatial Map",
+                                                style={"fontSize": "0.95rem", "margin": 0},
+                                            ),
+                                            html.Div(id="map-compassLondon"),
+                                        ],
                                     ),
                                     html.Span(
                                         "Live positions",
