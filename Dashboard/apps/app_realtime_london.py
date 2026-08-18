@@ -792,26 +792,34 @@ zooms = {"18": 12.0, "24": 12.6, "25": 11.8, "73": 12.2}
 
 
 def calc_map_params(line="25"):
-    """Compute stable map center coordinates, optimal zoom, and horizontal auto-bearing."""
+    """Compute stable map center, zoom, and camera bearing.
+
+    The bearing aligns Direction 1 of the route horizontally across the wide
+    map card (start terminus on the left, end terminus on the right). It uses
+    the signed start-to-end heading (clockwise from True North) minus 90 deg —
+    unambiguous, unlike PCA (which is invariant to 180-deg flips).
+    """
     shapes = line_shapes.loc[line_shapes.line_sn.astype(str) == str(line)]
     if not shapes.empty:
         center_x = float(shapes.lon.mean())
         center_y = float(shapes.lat.mean())
-        lat_mid = center_y * math.pi / 180.0
-        x = (shapes.lon - center_x) * math.cos(lat_mid)
-        y = shapes.lat - center_y
-        try:
-            cov = np.cov(x, y)
-            evals, evecs = np.linalg.eig(cov)
-            main_v = evecs[:, int(np.argmax(evals))]
-            angle_from_north = math.degrees(math.atan2(main_v[0], main_v[1]))
-            bearing = (90.0 - angle_from_north) % 180.0
-            if bearing > 90.0:
-                bearing -= 180.0
-        except Exception:
-            bearing = 0.0
+        d1 = shapes[shapes.direction == 1]
+        if len(d1) >= 2:
+            st_lat, st_lon = float(d1.iloc[0].lat), float(d1.iloc[0].lon)
+            en_lat, en_lon = float(d1.iloc[-1].lat), float(d1.iloc[-1].lon)
+        else:
+            st_lat, st_lon = float(shapes.iloc[0].lat), float(shapes.iloc[0].lon)
+            en_lat, en_lon = float(shapes.iloc[-1].lat), float(shapes.iloc[-1].lon)
+
+        lat_mid = (st_lat + en_lat) / 2.0 * math.pi / 180.0
+        dx = (en_lon - st_lon) * math.cos(lat_mid)
+        dy = en_lat - st_lat
+        heading = (math.degrees(math.atan2(dx, dy))) % 360.0
+        bearing = (heading - 90.0) % 360.0
+        if bearing > 180.0:
+            bearing -= 360.0
     else:
-        center_x, center_y = (-0.1278, 51.5074) if location == "London" else (-3.7038, 40.4168)
+        center_x, center_y = (-0.1278, 51.5074)
         bearing = 0.0
 
     zoom = float(zooms.get(str(line), 12.0))

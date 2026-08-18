@@ -117,10 +117,10 @@ layout = html.Div(
                             ],
                         ),
                         html.H2(
-                            "2 Active", style={"fontSize": "1.6rem", "margin": "0.5rem 0 0.2rem"}
+                            "4 Active", style={"fontSize": "1.6rem", "margin": "0.5rem 0 0.2rem"}
                         ),
                         html.Span(
-                            "TfL Unified Open Data",
+                            "Lines 18 · 24 · 25 · 73",
                             style={"fontSize": "0.8rem", "color": "var(--text-muted)"},
                         ),
                     ],
@@ -231,6 +231,16 @@ layout = html.Div(
                                     className="route-btn",
                                     href="/realtime/madrid/133",
                                 ),
+                                dcc.Link(
+                                    [html.I(className="fa-solid fa-bus"), "Line F"],
+                                    className="route-btn",
+                                    href="/realtime/madrid/F",
+                                ),
+                                dcc.Link(
+                                    [html.I(className="fa-solid fa-bus"), "Line G"],
+                                    className="route-btn",
+                                    href="/realtime/madrid/G",
+                                ),
                             ],
                         ),
                     ],
@@ -266,9 +276,19 @@ layout = html.Div(
                                     href="/realtime/london/18",
                                 ),
                                 dcc.Link(
+                                    [html.I(className="fa-solid fa-bus"), "Line 24"],
+                                    className="route-btn",
+                                    href="/realtime/london/24",
+                                ),
+                                dcc.Link(
                                     [html.I(className="fa-solid fa-bus"), "Line 25"],
                                     className="route-btn",
                                     href="/realtime/london/25",
+                                ),
+                                dcc.Link(
+                                    [html.I(className="fa-solid fa-bus"), "Line 73"],
+                                    className="route-btn",
+                                    href="/realtime/london/73",
                                 ),
                             ],
                         ),
