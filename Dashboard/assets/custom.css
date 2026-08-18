@@ -695,9 +695,9 @@ h6,
 
   /* Compact Toolbar Sliders */
   .compact-slider {
-    height: 20px !important;
+    height: 24px !important;
     padding: 2px 4px !important;
-    margin: 0 !important;
+    margin-bottom: 2px !important;
   }
   .compact-slider .rc-slider-mark {
     top: 10px !important;
@@ -777,7 +777,7 @@ h6,
 }
 
 .toolbar-card {
-  padding: 0.5rem 1rem 0.85rem 1rem !important;
+  padding: 0.65rem 1.15rem 1rem 1.15rem !important;
   overflow: visible !important;
-  min-height: 80px !important;
+  min-height: 94px !important;
 }

@@ -427,13 +427,13 @@ layout = html.Div(
                             className="minimal-tabs-container",
                             children=[
                                 dcc.Tab(
-                                    label="1D Headway Series",
+                                    label="1D Headway Series (s)",
                                     value="ts1" + location,
                                     className="minimal-tab",
                                     selected_className="minimal-tab--selected",
                                 ),
                                 dcc.Tab(
-                                    label="2D Headway Dynamics",
+                                    label="2D Dynamics (s)",
                                     value="ts2" + location,
                                     className="minimal-tab",
                                     selected_className="minimal-tab--selected",
@@ -469,7 +469,7 @@ layout = html.Div(
                             className="minimal-tabs-container",
                             children=[
                                 dcc.Tab(
-                                    label="Mahalanobis Distance",
+                                    label="Mahalanobis Distance (σ)",
                                     value="md" + location,
                                     className="minimal-tab",
                                     selected_className="minimal-tab--selected",
@@ -1032,11 +1032,11 @@ def build_time_series_graph(series_df, model, conf):
 
     # Set title and clean layout (no cluttered 25-pair text wall)
     graph.update_layout(
-        title={"text": "<b>1D HEADWAYS TIME SERIES</b> - (In seconds)", "font": {"size": 11.5}},
+        title=None,
         uirevision="ts1",
         showlegend=False,
         hovermode="closest",
-        margin={"r": 15, "l": 48, "t": 28, "b": 25},
+        margin={"r": 15, "l": 45, "t": 10, "b": 22},
         xaxis={
             "showgrid": True,
             "gridcolor": "rgba(255,255,255,0.06)",
@@ -1109,11 +1109,11 @@ def build_2d_time_series_graph(series_df, model, conf):
     graph = go.Figure()
 
     graph.update_layout(
-        title={"text": "<b>2D HEADWAYS DYNAMICS</b> - (In seconds)", "font": {"size": 11.5}},
+        title=None,
         uirevision="ts2",
         showlegend=False,
         hovermode="closest",
-        margin={"r": 15, "l": 48, "t": 28, "b": 30},
+        margin={"r": 15, "l": 45, "t": 10, "b": 25},
         xaxis={
             "title": {"text": "Headway HW12", "font": {"size": 10, "color": "#94A3B8"}},
             "showgrid": True,
@@ -1178,11 +1178,11 @@ def build_m_dist_graph(series_df, line):
     graph = go.Figure()
 
     graph.update_layout(
-        title={"text": "<b>MAHALANOBIS DISTANCE</b> - Anomaly Metric", "font": {"size": 11.5}},
+        title=None,
         uirevision="md",
         showlegend=False,
         hovermode="closest",
-        margin={"r": 15, "l": 48, "t": 28, "b": 25},
+        margin={"r": 15, "l": 45, "t": 10, "b": 22},
         xaxis={
             "showgrid": True,
             "gridcolor": "rgba(255,255,255,0.06)",

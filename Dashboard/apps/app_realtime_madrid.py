@@ -448,13 +448,13 @@ layout = html.Div(
                             className="minimal-tabs-container",
                             children=[
                                 dcc.Tab(
-                                    label="1D Headway Series",
+                                    label="1D Headway Series (s)",
                                     value="ts1" + location,
                                     className="minimal-tab",
                                     selected_className="minimal-tab--selected",
                                 ),
                                 dcc.Tab(
-                                    label="2D Headway Dynamics",
+                                    label="2D Dynamics (s)",
                                     value="ts2" + location,
                                     className="minimal-tab",
                                     selected_className="minimal-tab--selected",
@@ -490,7 +490,7 @@ layout = html.Div(
                             className="minimal-tabs-container",
                             children=[
                                 dcc.Tab(
-                                    label="Mahalanobis Distance",
+                                    label="Mahalanobis Distance (σ)",
                                     value="md" + location,
                                     className="minimal-tab",
                                     selected_className="minimal-tab--selected",
