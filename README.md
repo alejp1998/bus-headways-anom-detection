@@ -29,7 +29,7 @@ The web application is built with **Dash 4**, **Plotly 6**, and modern glassmorp
 ### 1. Real-Time Fleet Monitor (1D Time Series & Mahalanobis Anomaly Tracking)
 
 ![London Transit Monitor 1D Cockpit](docs/screenshots/london_cockpit_1d.png)
-_Live monitoring of London Route 25: Fleet Spatial Map with individual vehicle tracking, Linear Stringline Corridor with color-coded headway bridges, 1D Headway Time Series over time, and continuous Mahalanobis Distance anomaly tracking._
+_Live monitoring of London Route 24 (Hampstead Heath ↔ Pimlico): Auto-aligned horizontal Fleet Spatial Map with individual vehicle tracking, Linear Stringline Corridor with color-coded bunching warning bridges, 1D Headway Time Series (s) over time, and continuous Mahalanobis Distance anomaly tracking._
 
 ---
 
@@ -65,7 +65,7 @@ _Inspect nominal parameter drift $(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, QoS 
                     ▼                                ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                   High-Throughput Ingestion Engine                     │
-│       scripts/run_london_live.py (40s cycle, <0.8s line-level poll)    │
+│       scripts/run_london_live.py (5s cycle, <0.8s line-level poll)    │
 │       scripts/poll_madrid_access.py (EMT authentication watchdog)      │
 └───────────────────┬────────────────────────────────┬───────────────────┘
                     │                                │
