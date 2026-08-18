@@ -791,7 +791,7 @@ mapbox_light_style = "light" if mapbox_access_token else "carto-positron"
 zooms = {"18": 12.0, "24": 12.6, "25": 11.8, "73": 12.2}
 
 
-def calc_map_params(line="25", container_w=740, container_h=370, margin=0.18):
+def calc_map_params(line="25", container_w=740, container_h=370, margin=0.38):
     """Compute exact bounding box center, optimal zoom, and camera bearing.
 
     Projects all route coordinates into the rotated screen frame so that

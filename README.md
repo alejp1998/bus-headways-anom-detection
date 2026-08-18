@@ -120,8 +120,8 @@ Replaced generic scatter charts with a transportation-grade linear route stringl
 
 ### 3. Multi-Dimensional Statistical Anomaly Detection
 
-- **1D Headway Time Series**: Tracks consecutive pairs $(B_1 \to B_2)$ over time relative to $(1-\alpha)$ tolerance bounds.
-- **2D Dynamics (Phase Space Trajectories)**: Tracks triplets $(B_1 \to B_2 \to B_3)$ simultaneously, plotting dynamic trajectories inside the $(1-\alpha)$ confidence ellipse:
+- **1D Headway Time Series**: Tracks consecutive pairs $(B_1 \to B_2)$ over time relative to $(1 - \alpha)$ tolerance bounds.
+- **2D Dynamics (Phase Space Trajectories)**: Tracks triplets $(B_1 \to B_2 \to B_3)$ simultaneously, plotting dynamic trajectories inside the $(1 - \alpha)$ confidence ellipse:
   $$\boldsymbol{\Sigma} = \begin{bmatrix} \sigma_1^2 & \text{cov}_{12} \\ \text{cov}_{12} & \sigma_2^2 \end{bmatrix}, \quad r_{1,2} = \sqrt{\chi^2_2(1-\alpha) \cdot \lambda_{1,2}}$$
 - **Adaptive Mahalanobis Series**: The anomaly metric plot on the right adapts to the active tab on the left ($d=1$ vs $d=2$).
 
