@@ -815,9 +815,10 @@ def build_map(line_df, line="25", theme="dark"):
                 )
             )
 
-    # Add live bus markers
+    # Add live bus markers (exactly 1 dot per unique vehicle at its immediate next arrival stop)
     if not line_df.empty:
-        for bus in line_df.itertuples():
+        live_buses = line_df.sort_values("estimateArrive").drop_duplicates("bus", keep="first")
+        for bus in live_buses.itertuples():
             color = get_bus_color(bus.bus)
             new_map.add_trace(
                 go.Scattermap(
@@ -1433,7 +1434,7 @@ def update_buses_position(n_intervals, pathname, theme="dark"):
     return [build_map(line_burst, line, theme=theme)]
 
 
-# CALLBACK 1 - Active Route Pills & Tab Title
+# CALLBACK 1 - Active Route Pills & Tab Title (Styled with dot & bus icon)
 @app.callback(
     [
         Output("route-pills-container" + location, "children"),
@@ -1442,7 +1443,11 @@ def update_buses_position(n_intervals, pathname, theme="dark"):
     [Input("url", "pathname")],
 )
 def update_active_route_pills(pathname):
-    active_line = pathname.split("/")[-1] if pathname else ("1" if location == "Madrid" else "25")
+    active_line = (
+        pathname.split("/")[-1]
+        if (pathname and len(pathname.split("/")) > 2)
+        else ("1" if location == "Madrid" else "25")
+    )
     lines_avail = (
         ["1", "44", "82", "132", "133", "F", "G"]
         if location == "Madrid"
@@ -1453,7 +1458,20 @@ def update_active_route_pills(pathname):
         is_active = str(line) == str(active_line)
         pill_class = "route-pill active" if is_active else "route-pill"
         href = f"/realtime/{location.lower()}/{line}"
-        pills.append(dcc.Link(f"Line {line}", href=href, className=pill_class))
+        pills.append(
+            dcc.Link(
+                [
+                    html.Span(className="pill-dot"),
+                    html.I(
+                        className="fa-solid fa-bus",
+                        style={"fontSize": "0.75rem", "opacity": "0.8" if not is_active else "1"},
+                    ),
+                    f"Line {line}",
+                ],
+                href=href,
+                className=pill_class,
+            )
+        )
 
     now_time = dt.datetime.now().strftime("%H:%M:%S")
     tab_title = f"Line {active_line} — updated {now_time}"

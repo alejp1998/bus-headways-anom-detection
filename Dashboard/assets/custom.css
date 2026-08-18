@@ -930,3 +930,57 @@ h6,
   justify-content: space-between;
   background: var(--bg-card-subtle);
 }
+
+/* Modern Tactile Route Selector Pills */
+.route-pills-wrapper {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.route-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.route-pill:hover {
+  color: var(--text-main);
+  background: var(--bg-hover);
+}
+
+.route-pill.active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #8b5cf6 0%, #4f46e5 100%) !important;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.35);
+  border-color: rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+}
+
+.route-pill .pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: all 0.18s ease;
+}
+
+.route-pill.active .pill-dot {
+  background: #34d399; /* Emerald Green */
+  box-shadow: 0 0 6px #34d399;
+}
