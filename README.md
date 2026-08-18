@@ -36,7 +36,7 @@ _Live monitoring of London Route 24 (Hampstead Heath ↔ Pimlico): Auto-aligned 
 ### 2. Auto-Aligned Route Camera, True North Compass & 2D Phase Space Dynamics
 
 ![London Line 24 2D Dynamics with Auto-Bearing](docs/screenshots/london_cockpit_2d_rotation.png)
-_Route 24 (North-South route): The map camera automatically rotates via Principal Component Analysis (PCA) bearing (`-80.2°`) to align horizontally across the wide screen card, paired with an interactive **True North Compass Widget**. The bottom-left card displays **2D Headway Dynamics trajectories** navigating relative to the $(1-lpha)$ Gaussian confidence ellipse._
+_London Route 24 in 2D Phase Space Dynamics Mode: The map camera automatically rotates to horizontal bearing (`-100.5°`) to fill the wide card space, paired with an interactive **True North Compass Widget (`N +101°`)**. The bottom-left panel displays **2D Headway Dynamics trajectories** navigating relative to the (1 - α) bivariate Gaussian confidence ellipse._
 
 ---
 
@@ -120,14 +120,14 @@ Replaced generic scatter charts with a transportation-grade linear route stringl
 
 ### 3. Multi-Dimensional Statistical Anomaly Detection
 
-- **1D Headway Time Series**: Tracks consecutive pairs $(B_1 \to B_2)$ over time relative to $(1 - \alpha)$ tolerance bounds.
-- **2D Dynamics (Phase Space Trajectories)**: Tracks triplets $(B_1 \to B_2 \to B_3)$ simultaneously, plotting dynamic trajectories inside the $(1 - \alpha)$ confidence ellipse:
+- **1D Headway Time Series**: Tracks consecutive pairs $(B_1 \to B_2)$ over time relative to (1 - α) tolerance bounds.
+- **2D Dynamics (Phase Space Trajectories)**: Tracks triplets $(B_1 \to B_2 \to B_3)$ simultaneously, plotting dynamic trajectories inside the (1 - α) confidence ellipse:
   $$\boldsymbol{\Sigma} = \begin{bmatrix} \sigma_1^2 & \text{cov}_{12} \\ \text{cov}_{12} & \sigma_2^2 \end{bmatrix}, \quad r_{1,2} = \sqrt{\chi^2_2(1-\alpha) \cdot \lambda_{1,2}}$$
 - **Adaptive Mahalanobis Series**: The anomaly metric plot on the right adapts to the active tab on the left ($d=1$ vs $d=2$).
 
 ### 4. Fully Reactive Controls & Live KPI Counters
 
-- **Confidence ($1-\alpha$) & Filter Window ($k$) Sliders**: Dragging the sliders instantly updates 1D threshold lines, resizes the 2D confidence ellipse, shifts the Mahalanobis cutoff, and re-evaluates the active anomaly count live.
+- **Confidence (1 - α) & Filter Window ($k$) Sliders**: Dragging the sliders instantly updates 1D threshold lines, resizes the 2D confidence ellipse, shifts the Mahalanobis cutoff, and re-evaluates the active anomaly count live.
 - **Idle / Terminus KPI Counter**: Tracks vehicles sitting at first/last stops or dwelling near depots that are filtered from headway calculations.
 
 ---
@@ -174,6 +174,29 @@ python scripts/run_london_live.py &
 # 4. Start the interactive Dash dashboard
 python Dashboard/index.py
 ```
+
+---
+
+## 🔑 Data Access & API Credentials
+
+### London Transport for London (TfL)
+
+- **Unified API**: Endpoint `https://api.tfl.gov.uk/Line/{id}/Arrivals`
+- **Authentication**: Keyless open access out-of-the-box for low and moderate volume polling. (Optional `app_key` parameter can be passed for high-rate production pipelines).
+
+### Madrid EMT (MobilityLabs)
+
+- **Portal Registration**: Live access requires creating a developer account on the official EMT Madrid portal at **[https://mobilitylabs.emtmadrid.es/](https://mobilitylabs.emtmadrid.es/)**.
+- **Credentials Setup**: Once registered, obtain your `clientId` (registered email/user) and `passKey` (API key). Create a gitignored `api_credentials.py` at the repo root:
+  ```python
+  # api_credentials.py (never committed)
+  madrid_emt = {
+      "clientId": "your_email@domain.com",
+      "passKey": "your_mobilitylabs_passkey_here",
+  }
+  ```
+- **Autonomous Watchdog (`scripts/poll_madrid_access.py`)**:
+  EMT MobilityLabs activates keys through their portal verification workflow. The containerized `madrid-watchdog` service continuously polls EMT authentication endpoints in the background, logs current portal approval state, and automatically initiates live telemetry collection the moment credentials become active.
 
 ---
 
