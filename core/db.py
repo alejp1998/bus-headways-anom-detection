@@ -378,6 +378,40 @@ def upsert_weekly_history(city: str, stats_data: dict, models_data: dict):
 # ==============================================================================
 
 
+def get_all_bursts_df(city: str, line: str | None = None, limit: int = 500_000) -> pd.DataFrame:
+    """Retrieve the full recent vehicle-prediction history — research/notebook use.
+
+    Mirrors the original ``buses_data_week_cleaned.csv`` structure (every
+    stop-arrival prediction per vehicle) so QoS/cleanliness notebooks can run
+    the exact thesis methodology against live telemetry.
+    """
+    if line is not None:
+        query = """
+            SELECT line, bus, vehicle_id AS vehicleId, destination, stop,
+                   estimate_arrive AS estimateArrive, distance_bus AS DistanceBus,
+                   lat, lon, created_at AS datetime
+            FROM buses_burst
+            WHERE city = ? AND line = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """
+        params = [city, str(line), limit]
+    else:
+        query = """
+            SELECT line, bus, vehicle_id AS vehicleId, destination, stop,
+                   estimate_arrive AS estimateArrive, distance_bus AS DistanceBus,
+                   lat, lon, created_at AS datetime
+            FROM buses_burst
+            WHERE city = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """
+        params = [city, limit]
+
+    with db_session() as conn:
+        return pd.read_sql_query(query, conn, params=params)
+
+
 def get_latest_burst_df(city: str, line: str | None = None) -> pd.DataFrame:
     """Retrieve the latest live vehicle positions snapshot from database."""
     if line is not None:
@@ -400,6 +434,37 @@ def get_latest_burst_df(city: str, line: str | None = None) -> pd.DataFrame:
               AND created_at = (SELECT MAX(created_at) FROM buses_burst WHERE city = ?)
         """
         params = [city, city]
+
+    with db_session() as conn:
+        return pd.read_sql_query(query, conn, params=params)
+
+
+def get_all_headways_df(city: str, line: str | None = None, limit: int = 100_000) -> pd.DataFrame:
+    """Retrieve the full (or most recent `limit`) consecutive headway history — research/notebook use.
+
+    Mirrors the original ``Data/Processed/headways.csv`` structure so research
+    notebooks can run the exact thesis methodology against live telemetry.
+    """
+    if line is not None:
+        query = """
+            SELECT line, direction, bus_a AS busA, bus_b AS busB, hw_pos,
+                   headway, bus_a_ttls AS busA_ttls, bus_b_ttls AS busB_ttls, created_at AS datetime
+            FROM headways_burst
+            WHERE city = ? AND line = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """
+        params = [city, str(line), limit]
+    else:
+        query = """
+            SELECT line, direction, bus_a AS busA, bus_b AS busB, hw_pos,
+                   headway, bus_a_ttls AS busA_ttls, bus_b_ttls AS busB_ttls, created_at AS datetime
+            FROM headways_burst
+            WHERE city = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """
+        params = [city, limit]
 
     with db_session() as conn:
         return pd.read_sql_query(query, conn, params=params)

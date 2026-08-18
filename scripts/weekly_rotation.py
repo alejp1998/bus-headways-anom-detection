@@ -229,11 +229,26 @@ def rotate_and_archive_city(
         source_file = None
 
     if source_file is not None:
-        raw_df = pd.read_csv(source_file, dtype={"line": "str"})
+        try:
+            raw_df = pd.read_csv(source_file, dtype={"line": "str"}, on_bad_lines="skip")
+        except Exception:
+            raw_df = pd.read_csv(
+                source_file, dtype={"line": "str"}, engine="python", on_bad_lines="skip"
+            )
         raw_bytes = os.path.getsize(source_file)
     else:
         raw_df = pd.DataFrame()
         raw_bytes = 0
+
+    # Ingest from SQLite if database has more records
+    try:
+        from core import db
+
+        db_df = db.get_latest_burst_df(city)
+        if not db_df.empty and (raw_df.empty or len(db_df) > len(raw_df)):
+            raw_df = db_df
+    except Exception:
+        pass
 
     # 3. Train models and generate statistics
     if not raw_df.empty:

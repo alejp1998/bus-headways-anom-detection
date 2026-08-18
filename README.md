@@ -1,219 +1,222 @@
 # Bus Headways Analysis & Anomaly Detection
 
-**Real-Time Bus Headway Modeling, Quality of Service (QoS) Estimation, and Anomaly Detection for Madrid (EMT) and London (TfL)**
+**Real-Time Bus Headway Modeling, Quality of Service (QoS) Estimation, and Autonomous Anomaly Detection for London (TfL) and Madrid (EMT)**
 
-[![Python](https://img.shields.io/badge/Python-3.7-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Dash](https://img.shields.io/badge/Dash-1.12-008DE4?logo=plotly&logoColor=white)](https://dash.plotly.com/)
-[![Flask](https://img.shields.io/badge/Flask-1.1-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Dash 4.x](https://img.shields.io/badge/Dash-4.x-008DE4?logo=plotly&logoColor=white)](https://dash.plotly.com/)
+[![Plotly 6.x](https://img.shields.io/badge/Plotly-6.x-3F4F75?logo=plotly&logoColor=white)](https://plotly.com/)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose%20v2-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![SQLite WAL](https://img.shields.io/badge/Database-SQLite%20WAL-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![IEEE TITS](https://img.shields.io/badge/IEEE%20TITS-10.1109%2FTITS.2022.3155180-00629B)](https://doi.org/10.1109/TITS.2022.3155180)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Code Quality](https://img.shields.io/badge/Quality-Radon%20A--C%20%7C%20Ruff-success.svg)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## Publication Reference
+## 📖 Publication & Research
 
-This repository contains the official implementation and research codebase for the publication:
+This repository hosts the production implementation and research codebase for the publication:
 
 > **A. Jarabo-Peñas, P. J. Zufiria and C. García-Mauriño**, _"Bus Headways Analysis for Anomaly Detection,"_ in **IEEE Transactions on Intelligent Transportation Systems**, vol. 23, no. 10, pp. 18975-18988, Oct. 2022.
 > **DOI:** [10.1109/TITS.2022.3155180](https://doi.org/10.1109/TITS.2022.3155180)
 
 ---
 
-## Contents
+## 🖥️ Live Dashboard & Interactive Cockpit
 
-- [Overview](#overview)
-- [Key Technical Highlights](#key-technical-highlights)
-- [System Architecture](#system-architecture)
-  - [Data Pipeline](#data-pipeline)
-  - [Statistical Modeling & QoS](#statistical-modeling--qos)
-  - [Real-Time Anomaly Detection](#real-time-anomaly-detection)
-- [Web Dashboard](#web-dashboard)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Docker Deployment (Recommended)](#docker-deployment-recommended)
-  - [Local Python Setup](#local-python-setup)
-- [Data Access & Ingestion](#data-access--ingestion)
-- [Repository Structure](#repository-structure)
-- [Citation](#citation)
-- [License](#license)
+The web application is built with **Dash 4**, **Plotly 6**, and modern glassmorphic styling, engineered as a **100vh desktop cockpit view** (zero scrollbars, 50/50 divided analytics matching the KPI grid, mobile-first responsive scaling, and system-aware dark/light theming).
+
+### 1. Real-Time Fleet Monitor (1D Time Series & Mahalanobis Anomaly Tracking)
+
+![London Transit Monitor 1D Cockpit](docs/screenshots/london_cockpit_1d.png)
+_Live monitoring of London Route 25: Fleet Spatial Map with individual vehicle tracking, Linear Stringline Corridor with color-coded headway bridges, 1D Headway Time Series over time, and continuous Mahalanobis Distance anomaly tracking._
 
 ---
 
-## Overview
+### 2. Auto-Aligned Route Camera, True North Compass & 2D Phase Space Dynamics
 
-Maintaining regular headways (the time interval between consecutive transit vehicles) is fundamental to operating high-quality urban bus systems. Headway irregularities lead to bus bunching, increased passenger wait times, and degraded service reliability.
-
-This project delivers an end-to-end data processing, statistical modeling, and real-time monitoring platform for public bus networks in **Madrid (EMT)** and **London (TfL)**. Using live telemetry and arrival time data from municipal transport APIs, the system:
-
-1. Models the statistical distribution and spatiotemporal evolution of headways across line stops.
-2. Derives an unsupervised **Quality of Service (QoS)** index to quantify route performance.
-3. Automatically detects headway anomalies (bunching, excessive gaps, missing vehicles) in real time.
-4. Serves live interactive visualizations via a web-based dashboard.
+![London Line 24 2D Dynamics with Auto-Bearing](docs/screenshots/london_cockpit_2d_rotation.png)
+_Route 24 (North-South route): The map camera automatically rotates via Principal Component Analysis (PCA) bearing (`-80.2°`) to align horizontally across the wide screen card, paired with an interactive **True North Compass Widget**. The bottom-left card displays **2D Headway Dynamics trajectories** navigating relative to the $(1-lpha)$ Gaussian confidence ellipse._
 
 ---
 
-## Key Technical Highlights
+### 3. Integrated Transit Intelligence Guide (Plain-English Modal)
 
-- **Multi-City Real-Time Ingestion**: Automated collectors interfacing with Madrid EMT MobilityLabs API and London Transport for London (TfL) Unified API.
-- **Empirical & Parametric Headway Characterization**: Comprehensive statistical modeling of headways and inter-stop travel times across different times of day, line typologies, and stop sequences.
-- **Online Unsupervised Anomaly Detection**: Statistical anomaly detection scheme that dynamically flags irregular headway deviations without requiring labeled historical training sets.
-- **QoS Formulation**: Quantitative metric assessing deviation from scheduled vs. actual headway regularity.
-- **Interactive Dash/Flask Web UI**: Responsive multi-page web application featuring live route topology maps, headway timeline gauges, and anomaly alerts.
+![Transit Intelligence Guide Modal](docs/screenshots/transit_guide_modal.png)
+_Accessible via the `Guide` button in the navbar: An interactive, glassmorphic modal explaining headways, bus bunching, stringline diagrams, 1D/2D dynamics, Mahalanobis distances, and control sliders in intuitive language for non-technical users._
 
 ---
 
-## System Architecture
+### 4. Autonomous Model Retraining & Parameter Rotation Archive (`/history`)
+
+![Historical Analytics & Weekly Retraining Archive](docs/screenshots/history_analytics.png)
+_Inspect nominal parameter drift $(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, QoS service regularity indices, API collection health, and storage savings over historical ISO calendar weeks._
+
+---
+
+## 🏛️ System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    External Transit APIs                    │
-│   Madrid EMT MobilityLabs API   │   London TfL Unified API  │
-└──────────────┬──────────────────────────────┬───────────────┘
-               │                              │
-               ▼                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Data Collection Layer                     │
-│           (retrieve_data.py / real-time polling)            │
-└──────────────┬──────────────────────────────┬───────────────┘
-               │                              │
-               ▼                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Data Processing Pipeline                  │
-│  Data Cleaning ──► Arrival Times ──► Inter-Stop Times ──►   │
-│                    Headway Computation                      │
-└──────────────┬──────────────────────────────┬───────────────┘
-               │                              │
-               ▼                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│            Statistical Modeling & Anomaly Engine            │
-│  Parameter Estimation (models_params.py)                    │
-│  Live Anomaly Inference (detect_anoms_hws.py)               │
-│  QoS Index Formulation                                      │
-└──────────────┬──────────────────────────────┬───────────────┘
-               │                              │
-               ▼                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Interactive Dashboard (Dash/Flask)             │
-│  Route Visualizer ──► Live Headways ──► Anomaly Indicators  │
-│                   (http://localhost:8050)                   │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                         Live Municipal Transit APIs                    │
+│      London TfL Unified API (/Line/{id}/Arrivals)  │  Madrid EMT API   │
+└───────────────────┬────────────────────────────────┬───────────────────┘
+                    │                                │
+                    ▼                                ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                   High-Throughput Ingestion Engine                     │
+│       scripts/run_london_live.py (40s cycle, <0.8s line-level poll)    │
+│       scripts/poll_madrid_access.py (EMT authentication watchdog)      │
+└───────────────────┬────────────────────────────────┬───────────────────┘
+                    │                                │
+                    ▼                                ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│           Vectorized Processing & Mahalanobis Anomaly Engine           │
+│  - Reversed Cumulative TTLS Lookup (times_bt_stops.csv)                │
+│  - Edge/Terminal Noise Filtering (first/last 3 stops, dwell <60s)      │
+│  - Multi-Dimensional Windowing (d=1, 2, 3)                             │
+│  - Vectorized Mahalanobis Distance: D_M = sqrt((x-μ)^T Σ^-1 (x-μ))     │
+└───────────────────┬────────────────────────────────┬───────────────────┘
+                    │                                │
+                    ▼                                ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│               High-Performance SQLite Storage (core/db.py)             │
+│        Data/runtime/transit_telemetry.db (WAL Mode, 64MB Page Cache)   │
+│   [buses_burst]   [headways_burst]   [headways_series]   [anomalies]   │
+└───────────────────┬────────────────────────────────┬───────────────────┘
+                    │                                │
+                    ▼                                ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                 Modern Dash/Plotly Web Cockpit (:8050)                 │
+│   - Auto-Aligned Route Camera with True North Compass Widget           │
+│   - Linear Stringline Corridor with Color-Coded Bunching Bridges       │
+│   - 1D Headway Series (s)  │  2D Headway Dynamics (s) (Phase Space)    │
+│   - Adaptive Mahalanobis Distance (σ)  │  Anomaly Events Table         │
+│   - Reactive Sensitivity Sliders (1-α, k) with Zero Layout Overflow    │
+│   - Autonomous Weekly Model Retraining Engine (weekly_rotation.py)     │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Web Dashboard
+## 🌟 Key Features & Innovations
 
-The web dashboard is built using Dash, Flask, Plotly, and Bulma CSS. It provides:
+### 1. Linear Stringline Route Corridor Diagram
 
-- **Home View**: System overview, methodology summary, and line selection.
-- **Madrid EMT Real-Time**: Live headway tracking and anomaly status across selected Madrid lines (Lines 1, 44, 82, 132, 133, F, G).
-- **London TfL Real-Time**: Live headway metrics across monitored London bus corridors.
-- **Credits & Publication**: Citation links, institutional context, and author details.
+Replaced generic scatter charts with a transportation-grade linear route stringline diagram:
+
+- **Dual Direction Rails**: Top track represents Direction 1 (Outbound), bottom track represents Direction 2 (Inbound), with terminus badges.
+- **Deterministic 16-Color Vehicle Palette**: Every bus preserves its dedicated color across the Fleet Map, Stringline Corridor, 1D/2D series curves, and Anomaly table.
+- **Color-Coded Headway Bridges**:
+  - <span style="color: #EF4444; font-weight: bold;">⚠️ Bus Bunching Risk</span> ($< 2\text{ min}$ / $< 120\text{s}$): Highlighted with warning bridges.
+  - <span style="color: #8B5CF6; font-weight: bold;">✅ Regular Service</span> ($2 - 12\text{ min}$): Highlighted in purple/indigo.
+  - <span style="color: #F59E0B; font-weight: bold;">⏳ Service Gap</span> ($> 12\text{ min}$): Highlighted with amber spacing brackets and minute annotations.
+
+### 2. Auto-Aligning Route Camera & True North Compass
+
+- **PCA Auto-Bearing**: Automatically computes the route's principal axis of variance and rotates the camera bearing so North-South and diagonal bus routes span horizontally across wide desktop monitors.
+- **True North Compass**: Glassmorphic heading indicator with rotating red pointer needle showing exact deviation from True North.
+- **User Pan/Zoom Lock**: Keyed with `uirevision` — user panning and zooming are preserved across the 5-second live telemetry refresh cycles.
+
+### 3. Multi-Dimensional Statistical Anomaly Detection
+
+- **1D Headway Time Series**: Tracks consecutive pairs $(B_1 \to B_2)$ over time relative to $(1-\alpha)$ tolerance bounds.
+- **2D Dynamics (Phase Space Trajectories)**: Tracks triplets $(B_1 \to B_2 \to B_3)$ simultaneously, plotting dynamic trajectories inside the $(1-\alpha)$ confidence ellipse:
+  $$\boldsymbol{\Sigma} = \begin{bmatrix} \sigma_1^2 & \text{cov}_{12} \\ \text{cov}_{12} & \sigma_2^2 \end{bmatrix}, \quad r_{1,2} = \sqrt{\chi^2_2(1-\alpha) \cdot \lambda_{1,2}}$$
+- **Adaptive Mahalanobis Series**: The anomaly metric plot on the right adapts to the active tab on the left ($d=1$ vs $d=2$).
+
+### 4. Fully Reactive Controls & Live KPI Counters
+
+- **Confidence ($1-\alpha$) & Filter Window ($k$) Sliders**: Dragging the sliders instantly updates 1D threshold lines, resizes the 2D confidence ellipse, shifts the Mahalanobis cutoff, and re-evaluates the active anomaly count live.
+- **Idle / Terminus KPI Counter**: Tracks vehicles sitting at first/last stops or dwelling near depots that are filtered from headway calculations.
 
 ---
 
-## Getting Started
+## 🚀 Quick Start
 
-### Prerequisites
-
-- **Docker** (recommended) or **Python 3.7+**
-- Git
-
-### Docker Deployment (Recommended)
-
-Build and run the containerized dashboard with a single command:
+### Running with Docker Compose (Recommended)
 
 ```bash
-# Build the Docker image
-docker build -t bus-headways:latest .
+# Clone the repository
+git clone https://github.com/alejp1998/bus-headways-anom-detection.git
+cd bus-headways-anom-detection
 
-# Run the container
-docker run -d -p 8050:8050 --name bus-headways bus-headways:latest
+# Launch the full container stack (Dashboard :8050, London Collector, Madrid Watchdog)
+./scripts/compose.sh up --build -d
 ```
 
-Access the dashboard in your browser at `http://localhost:8050`.
+Open **http://localhost:8050** in your browser.
 
-### Local Python Setup
+#### Managing Docker Services
 
 ```bash
-# 1. Create a virtual environment (Python 3.7 - 3.10 recommended)
-python3 -m venv .venv
+./scripts/compose.sh status            # View container health and status
+./scripts/compose.sh logs -f           # Follow live telemetry logs
+./scripts/compose.sh restart dashboard # Restart web server
+./scripts/compose.sh down              # Stop stack
+```
+
+---
+
+### Running Locally (Python 3.11+)
+
+```bash
+# 1. Create and activate virtual environment with uv or venv
+uv venv --python 3.11 .venv
 source .venv/bin/activate
 
 # 2. Install dependencies
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
-# 3. Launch anomaly detectors and dashboard server
-bash run_server.sh
+# 3. Launch live telemetry collector in the background (or run once)
+python scripts/run_london_live.py &
+
+# 4. Start the interactive Dash dashboard
+python Dashboard/index.py
 ```
 
 ---
 
-## Data Access & Ingestion
+## 📓 Research Notebooks & Reproducibility
 
-### Pre-Processed Datasets
+All research notebooks have been modernized for Python 3.11+ and connect directly to the live SQLite telemetry database (`core/db.py`):
 
-Pre-processed datasets containing cleaned telemetry, stop arrival times, and computed headways are archived on Mega:
-
-- **Dataset Archive:** [Mega Storage Link](https://mega.nz/folder/QRIGnQRZ#7fJVQcapLkSp7jGGz0WZeQ)
-- **Files included:**
-  - `buses_data_cleaned.csv`: Cleaned trajectory logs
-  - `arrival_times.csv`: Bus arrival timestamps per stop
-  - `time_bt_stops.csv`: Inter-stop transit travel times
-  - `headways.csv`: Computed headways per line and stop
-
-Place the downloaded CSVs into the respective `Madrid/Data/Processed/` or `London/Data/Processed/` directories.
-
-### Live API Configuration
-
-To enable real-time polling for Madrid EMT:
-
-1. Register for an API token at [Madrid EMT MobilityLabs](https://mobilitylabs.emtmadrid.es/).
-2. Create an `api_credentials.py` file in the project root:
-   ```python
-   EMT_CLIENT_ID = "your_client_id"
-   EMT_PASSKEY = "your_passkey"
-   ```
-3. Run the collection script:
-   ```bash
-   python Madrid/Scripts/CollectData/retrieve_data.py
-   ```
+| Notebook                                                                                             | Focus                                                                                | Execution Status |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | :--------------: |
+| [`London/Notebooks/HeadwaysAnalysis.ipynb`](London/Notebooks/HeadwaysAnalysis.ipynb)                 | Headway distribution fitting, 1D/2D dynamics, SOMNet & Hierarchical Clustering       | ✅ 100% Passing  |
+| [`London/Notebooks/API_QoS_Estimation.ipynb`](London/Notebooks/API_QoS_Estimation.ipynb)             | Quality of Service (QoS) index derivation & ETA linearity estimation                 | ✅ 100% Passing  |
+| [`London/Notebooks/API_CleanedData_Analysis.ipynb`](London/Notebooks/API_CleanedData_Analysis.ipynb) | Raw TfL trajectory cleaning, stop arrival time extraction & inter-stop distributions | ✅ 100% Passing  |
+| [`Madrid/Notebooks/HeadwaysAnalysis.ipynb`](Madrid/Notebooks/HeadwaysAnalysis.ipynb)                 | Empirical Madrid EMT headway characterization & Mahalanobis thresholding             | ✅ 100% Passing  |
+| [`Madrid/Notebooks/API_QoS_Estimation.ipynb`](Madrid/Notebooks/API_QoS_Estimation.ipynb)             | Madrid EMT QoS service regularity index formulation                                  | ✅ 100% Passing  |
+| [`Madrid/Notebooks/TimeBtStops.ipynb`](Madrid/Notebooks/TimeBtStops.ipynb)                           | Travel time distribution modeling and Value-at-Risk (VaR) fitting                    | ✅ 100% Passing  |
 
 ---
 
-## Repository Structure
+## 🛡️ Code Quality & Testing Gates
 
-```
-bus-headways-anom-detection/
-├── Dashboard/                  # Dash/Flask web application
-│   ├── app.py                  # Dash instance and server initialization
-│   ├── index.py                # Main navigation layout and routing
-│   ├── apps/                   # Page modules (home, madrid, london, credits)
-│   └── assets/                 # CSS styles and static assets
-├── Madrid/                     # Madrid EMT data, scripts, and notebooks
-│   ├── Data/                   # Static stop data, raw/processed telemetry
-│   ├── Notebooks/              # Exploratory data analysis and QoS modeling
-│   └── Scripts/                # Collection, processing, and anomaly scripts
-├── London/                     # London TfL data, scripts, and notebooks
-│   ├── Data/                   # TfL network configurations and telemetry
-│   ├── Notebooks/              # Headway analysis and distribution fitting
-│   └── Scripts/                # TfL data ingest and anomaly detection
-├── Dockerfile                  # Container definition for dashboard deployment
-├── requirements.txt            # Python package dependencies
-├── run_server.sh               # Startup script for anomaly workers + web server
-└── service_commands.md         # Systemd service templates and operations guide
+The repository strictly enforces automated quality gates:
+
+```bash
+# Run Ruff linting and formatting
+ruff check . && ruff format .
+
+# Run pre-commit hooks (Prettier, JSON/YAML validation, EOF, trailing whitespace)
+pre-commit run --all-files
+
+# Run automated test suite
+pytest
+
+# Verify Radon cyclomatic complexity (Grades A-C required, 0 D/E/F)
+python scripts/check_radon_complexity.py
 ```
 
 ---
 
-## Citation
-
-If you use this codebase or methodology in your research, please cite our IEEE TITS paper:
+## 📚 Citation
 
 ```bibtex
-@article{jarabo2022bus,
-  author={Jarabo-Pe{\~n}as, Alejandro and Zufiria, Pedro J. and Garc{\'\i}a-Mauri{\~n}o, Carlos},
+@ARTICLE{9733979,
+  author={Jarabo-Peñas, Alejandro and Zufiria, Pedro J. and García-Mauriño, Carlos},
   journal={IEEE Transactions on Intelligent Transportation Systems},
   title={Bus Headways Analysis for Anomaly Detection},
   year={2022},
@@ -226,6 +229,6 @@ If you use this codebase or methodology in your research, please cite our IEEE T
 
 ---
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
