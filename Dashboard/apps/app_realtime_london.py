@@ -152,7 +152,12 @@ layout = html.Div(
                     children=[
                         # Slider 1: Confidence
                         html.Div(
-                            style={"flex": "1 1 240px", "minWidth": "220px", "maxWidth": "380px"},
+                            style={
+                                "flex": "1 1 200px",
+                                "minWidth": "160px",
+                                "maxWidth": "300px",
+                                "padding": "0 10px",
+                            },
                             children=[
                                 html.Div(
                                     className="flex-between",
@@ -196,8 +201,8 @@ layout = html.Div(
                             style={
                                 "flex": "1 1 200px",
                                 "minWidth": "160px",
-                                "maxWidth": "320px",
-                                "padding": "0 8px",
+                                "maxWidth": "300px",
+                                "padding": "0 10px",
                             },
                             children=[
                                 html.Div(
@@ -1613,7 +1618,7 @@ def update_2d_time_series_hws(n_intervals, n_clicks, pathname, theme="dark", hov
 
     time_series_graph = build_2d_time_series_graph(line_series, model, conf)
 
-    _store_figure("ts1", line, time_series_graph)
+    _store_figure("ts2", line, time_series_graph)
     time_series_graph.update_layout(**theme_layout(theme, uirevision=str(line)))
     return [time_series_graph]
 

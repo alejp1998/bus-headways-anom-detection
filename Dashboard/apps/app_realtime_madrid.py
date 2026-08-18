@@ -181,7 +181,12 @@ layout = html.Div(
                     children=[
                         # Slider 1: Confidence
                         html.Div(
-                            style={"flex": "1 1 240px", "minWidth": "220px", "maxWidth": "380px"},
+                            style={
+                                "flex": "1 1 200px",
+                                "minWidth": "160px",
+                                "maxWidth": "300px",
+                                "padding": "0 10px",
+                            },
                             children=[
                                 html.Div(
                                     className="flex-between",
@@ -221,7 +226,12 @@ layout = html.Div(
                         ),
                         # Slider 2: Size Threshold
                         html.Div(
-                            style={"flex": "1 1 240px", "minWidth": "220px", "maxWidth": "380px"},
+                            style={
+                                "flex": "1 1 200px",
+                                "minWidth": "160px",
+                                "maxWidth": "300px",
+                                "padding": "0 10px",
+                            },
                             children=[
                                 html.Div(
                                     className="flex-between",

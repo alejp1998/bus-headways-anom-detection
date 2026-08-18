@@ -708,21 +708,21 @@ h6,
 
   /* Compact Toolbar Sliders */
   .compact-slider {
-    margin: 0.35rem 0 0.5rem 0 !important;
+    margin: 0.15rem 0 0.3rem 0 !important;
   }
   .compact-slider .rc-slider-mark {
-    top: 13px !important;
+    top: 9px !important;
   }
   .compact-slider .rc-slider-mark-text {
-    font-size: 0.68rem !important;
+    font-size: 0.65rem !important;
     font-family: var(--font-mono);
     color: var(--text-dim) !important;
     white-space: nowrap;
   }
   .compact-slider .rc-slider-handle {
-    width: 13px !important;
-    height: 13px !important;
-    margin-top: -4.5px !important;
+    width: 11px !important;
+    height: 11px !important;
+    margin-top: -3.5px !important;
   }
 }
 
