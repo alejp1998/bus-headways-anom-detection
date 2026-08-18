@@ -108,9 +108,9 @@ Replaced generic scatter charts with a transportation-grade linear route stringl
 - **Dual Direction Rails**: Top track represents Direction 1 (Outbound), bottom track represents Direction 2 (Inbound), with terminus badges.
 - **Deterministic 16-Color Vehicle Palette**: Every bus preserves its dedicated color across the Fleet Map, Stringline Corridor, 1D/2D series curves, and Anomaly table.
 - **Color-Coded Headway Bridges**:
-  - <span style="color: #EF4444; font-weight: bold;">⚠️ Bus Bunching Risk</span> ($< 2\text{ min}$ / $< 120\text{s}$): Highlighted with warning bridges.
-  - <span style="color: #8B5CF6; font-weight: bold;">✅ Regular Service</span> ($2 - 12\text{ min}$): Highlighted in purple/indigo.
-  - <span style="color: #F59E0B; font-weight: bold;">⏳ Service Gap</span> ($> 12\text{ min}$): Highlighted with amber spacing brackets and minute annotations.
+  - <span style="color: #EF4444; font-weight: bold;">⚠️ Bus Bunching Risk</span> (< 2 min / < 120s): Highlighted with warning bridges.
+  - <span style="color: #8B5CF6; font-weight: bold;">✅ Regular Service</span> (2 – 12 min): Highlighted in purple/indigo.
+  - <span style="color: #F59E0B; font-weight: bold;">⏳ Service Gap</span> (> 12 min): Highlighted with amber spacing brackets and minute annotations.
 
 ### 2. Auto-Aligning Route Camera & True North Compass
 
@@ -120,10 +120,9 @@ Replaced generic scatter charts with a transportation-grade linear route stringl
 
 ### 3. Multi-Dimensional Statistical Anomaly Detection
 
-- **1D Headway Time Series**: Tracks consecutive pairs $(B_1 \to B_2)$ over time relative to (1 - α) tolerance bounds.
-- **2D Dynamics (Phase Space Trajectories)**: Tracks triplets $(B_1 \to B_2 \to B_3)$ simultaneously, plotting dynamic trajectories inside the (1 - α) confidence ellipse:
-  $$\boldsymbol{\Sigma} = \begin{bmatrix} \sigma_1^2 & \text{cov}_{12} \\ \text{cov}_{12} & \sigma_2^2 \end{bmatrix}, \quad r_{1,2} = \sqrt{\chi^2_2(1-\alpha) \cdot \lambda_{1,2}}$$
-- **Adaptive Mahalanobis Series**: The anomaly metric plot on the right adapts to the active tab on the left ($d=1$ vs $d=2$).
+- **1D Headway Time Series**: Tracks consecutive vehicle pairs ($B_1 \to B_2$) over time relative to (1 - α) tolerance bounds.
+- **2D Dynamics (Phase Space Trajectories)**: Tracks vehicle triplets ($B_1 \to B_2 \to B_3$) simultaneously, plotting dynamic trajectories inside the bivariate Gaussian (1 - α) confidence ellipse derived from the covariance matrix $\boldsymbol{\Sigma}$ and eigen-radii $r_{1,2} = \sqrt{\chi^2_2(1-\alpha) \cdot \lambda_{1,2}}$.
+- **Adaptive Mahalanobis Series**: The anomaly metric plot on the right adapts to the active dimension on the left ($d = 1$ vs $d = 2$).
 
 ### 4. Fully Reactive Controls & Live KPI Counters
 
