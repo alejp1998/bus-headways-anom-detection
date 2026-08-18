@@ -984,3 +984,56 @@ h6,
   background: #34d399; /* Emerald Green */
   box-shadow: 0 0 6px #34d399;
 }
+
+/* Glassmorphic Map Compass Widget */
+.compass-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.55rem;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  cursor: help;
+  user-select: none;
+}
+
+.compass-dial {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.compass-needle {
+  width: 2px;
+  height: 12px;
+  background: linear-gradient(to bottom, #ef4444 50%, #e2e8f0 50%);
+  border-radius: 1px;
+}
+
+.compass-n {
+  position: absolute;
+  top: -4px;
+  font-size: 0.48rem;
+  font-weight: 800;
+  color: #ef4444;
+  line-height: 1;
+}
+
+.compass-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+}

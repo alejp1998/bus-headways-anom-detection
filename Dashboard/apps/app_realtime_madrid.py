@@ -782,39 +782,31 @@ def ellipse(mus, cov_matrix, conf):
     return x, y
 
 
-def calc_map_params(df):
-    line = str(df.line.iloc[0])
-    line1 = line_shapes.loc[(line_shapes.line_sn == line) & (line_shapes.direction == 1)]
-    line2 = line_shapes.loc[(line_shapes.line_sn == line) & (line_shapes.direction == 2)]
-    dest1 = lines_dict[line]["destinations"][1]
-
-    lons, lats = [], []
-    for bus in df.itertuples():
-        if bus.destination == dest1:
-            lon, lat = calculate_coords(line1, bus.stop, bus.DistanceBus)
-        else:
-            lon, lat = calculate_coords(line2, bus.stop, bus.DistanceBus)
-        lons.append(lon)
-        lats.append(lat)
-
-    df["lon"] = lons
-    df["lat"] = lats
-
-    # Stable route-level geometric center and zoom (prevents camera jumps on updates)
-    if not line1.empty and not line2.empty:
-        center_x = float((line1.lon.mean() + line2.lon.mean()) / 2.0)
-        center_y = float((line1.lat.mean() + line2.lat.mean()) / 2.0)
-    elif not line1.empty:
-        center_x = float(line1.lon.mean())
-        center_y = float(line1.lat.mean())
-    elif not df.empty and "lon" in df.columns:
-        center_x = float(df.lon.mean())
-        center_y = float(df.lat.mean())
+def calc_map_params(line="1"):
+    """Compute stable map center coordinates, optimal zoom, and horizontal auto-bearing."""
+    shapes = line_shapes.loc[line_shapes.line_sn.astype(str) == str(line)]
+    if not shapes.empty:
+        center_x = float(shapes.lon.mean())
+        center_y = float(shapes.lat.mean())
+        lat_mid = center_y * math.pi / 180.0
+        x = (shapes.lon - center_x) * math.cos(lat_mid)
+        y = shapes.lat - center_y
+        try:
+            cov = np.cov(x, y)
+            evals, evecs = np.linalg.eig(cov)
+            main_v = evecs[:, int(np.argmax(evals))]
+            angle_from_north = math.degrees(math.atan2(main_v[0], main_v[1]))
+            bearing = (90.0 - angle_from_north) % 180.0
+            if bearing > 90.0:
+                bearing -= 180.0
+        except Exception:
+            bearing = 0.0
     else:
-        center_x, center_y = -3.6922, 40.4299
+        center_x, center_y = (-0.1278, 51.5074) if location == "London" else (-3.7038, 40.4168)
+        bearing = 0.0
 
-    zoom = float(zooms.get(line, 12.5))
-    return df, center_x, center_y, zoom
+    zoom = float(zooms.get(str(line), 12.0))
+    return center_x, center_y, zoom, round(bearing, 1)
 
 
 def build_map(line_df, line="1", theme="dark"):
@@ -837,7 +829,7 @@ def build_map(line_df, line="1", theme="dark"):
     # We drop the duplicated buses keeping the instance that is closer to a stop
     line_df = line_df.sort_values(by="DistanceBus").drop_duplicates(["bus"], keep="first")
 
-    line_df, center_x, center_y, zoom = calc_map_params(line_df)
+    center_x, center_y, zoom, bearing = calc_map_params(line)
 
     # We create the figure object with theme-aware tiles
     new_map = go.Figure()
@@ -859,7 +851,7 @@ def build_map(line_df, line="1", theme="dark"):
             },
         },
         map={
-            "bearing": 0,
+            "bearing": bearing,
             "center": {"lat": center_y, "lon": center_x},
             "pitch": 0,
             "zoom": zoom,
@@ -1513,6 +1505,39 @@ layout = get_layout()
 
 
 # CALLBACKS
+
+
+# CALLBACK 0b - Map Compass Widget (Auto-align orientation indicator)
+@app.callback(
+    [Output("map-compass" + location, "children")],
+    [Input("url", "pathname")],
+)
+def update_map_compass(pathname):
+    active_line = (
+        pathname.split("/")[-1]
+        if (pathname and len(pathname.split("/")) > 2)
+        else ("1" if location == "Madrid" else "25")
+    )
+    _, _, _, bearing = calc_map_params(active_line)
+    needle_rot = -bearing
+    label = f"N {needle_rot:+.0f}°" if abs(needle_rot) > 1 else "True North"
+    return [
+        html.Div(
+            className="compass-badge",
+            title=f"Route auto-aligned to horizontal axis ({bearing:+.0f}°). Red needle points to True North.",
+            children=[
+                html.Div(
+                    className="compass-dial",
+                    style={"transform": f"rotate({needle_rot:.1f}deg)"},
+                    children=[
+                        html.Span("N", className="compass-n"),
+                        html.Div(className="compass-needle"),
+                    ],
+                ),
+                html.Span(label, className="compass-label"),
+            ],
+        )
+    ]
 
 
 # CALLBACK 0a - Live Map Positions

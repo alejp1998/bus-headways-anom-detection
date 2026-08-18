@@ -782,22 +782,37 @@ zooms = {"18": 12.0, "24": 12.6, "25": 11.8, "73": 12.2}
 
 
 def calc_map_params(line="25"):
-    """Compute stable map center coordinates and zoom level for the route."""
+    """Compute stable map center coordinates, optimal zoom, and horizontal auto-bearing."""
     shapes = line_shapes.loc[line_shapes.line_sn.astype(str) == str(line)]
     if not shapes.empty:
         center_x = float(shapes.lon.mean())
         center_y = float(shapes.lat.mean())
+        lat_mid = center_y * math.pi / 180.0
+        x = (shapes.lon - center_x) * math.cos(lat_mid)
+        y = shapes.lat - center_y
+        try:
+            cov = np.cov(x, y)
+            evals, evecs = np.linalg.eig(cov)
+            main_v = evecs[:, int(np.argmax(evals))]
+            angle_from_north = math.degrees(math.atan2(main_v[0], main_v[1]))
+            bearing = (90.0 - angle_from_north) % 180.0
+            if bearing > 90.0:
+                bearing -= 180.0
+        except Exception:
+            bearing = 0.0
     else:
-        center_x, center_y = -0.1278, 51.5074
-    zoom = float(zooms.get(str(line), 12.2))
-    return center_x, center_y, zoom
+        center_x, center_y = (-0.1278, 51.5074) if location == "London" else (-3.7038, 40.4168)
+        bearing = 0.0
+
+    zoom = float(zooms.get(str(line), 12.0))
+    return center_x, center_y, zoom, round(bearing, 1)
 
 
 def build_map(line_df, line="25", theme="dark"):
     """Build the interactive MapLibre/Scattermap route diagram with live buses."""
     dark = theme == "dark"
     map_style = mapbox_style if dark else mapbox_light_style
-    center_x, center_y, zoom = calc_map_params(line)
+    center_x, center_y, zoom, bearing = calc_map_params(line)
 
     new_map = go.Figure()
     new_map.update_layout(
@@ -813,7 +828,7 @@ def build_map(line_df, line="25", theme="dark"):
         },
         uirevision=f"map_{location}_{line}",
         map={
-            "bearing": 0,
+            "bearing": bearing,
             "center": {"lat": center_y, "lon": center_x},
             "pitch": 0,
             "zoom": zoom,
@@ -1462,6 +1477,39 @@ layout = get_layout()
 
 
 # CALLBACKS
+
+
+# CALLBACK 0b - Map Compass Widget (Auto-align orientation indicator)
+@app.callback(
+    [Output("map-compass" + location, "children")],
+    [Input("url", "pathname")],
+)
+def update_map_compass(pathname):
+    active_line = (
+        pathname.split("/")[-1]
+        if (pathname and len(pathname.split("/")) > 2)
+        else ("1" if location == "Madrid" else "25")
+    )
+    _, _, _, bearing = calc_map_params(active_line)
+    needle_rot = -bearing
+    label = f"N {needle_rot:+.0f}°" if abs(needle_rot) > 1 else "True North"
+    return [
+        html.Div(
+            className="compass-badge",
+            title=f"Route auto-aligned to horizontal axis ({bearing:+.0f}°). Red needle points to True North.",
+            children=[
+                html.Div(
+                    className="compass-dial",
+                    style={"transform": f"rotate({needle_rot:.1f}deg)"},
+                    children=[
+                        html.Span("N", className="compass-n"),
+                        html.Div(className="compass-needle"),
+                    ],
+                ),
+                html.Span(label, className="compass-label"),
+            ],
+        )
+    ]
 
 
 # CALLBACK 0a - Live Map Positions
