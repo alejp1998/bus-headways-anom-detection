@@ -30,7 +30,7 @@ def test_insert_and_query_buses():
                 "DistanceBus": 600.0,
                 "lat": 51.5074,
                 "lon": -0.1278,
-                "datetime": "2099-01-01T00:00:00",
+                "datetime": "2026-08-17T00:00:00",
             },
             {
                 "line": "24",
@@ -42,7 +42,7 @@ def test_insert_and_query_buses():
                 "DistanceBus": 2400.0,
                 "lat": 51.5174,
                 "lon": -0.1378,
-                "datetime": "2099-01-01T00:00:00",
+                "datetime": "2026-08-17T00:00:00",
             },
         ]
     )
@@ -69,7 +69,7 @@ def test_insert_and_query_headways():
                 "headway": 360.0,
                 "busA_ttls": 120.0,
                 "busB_ttls": 480.0,
-                "datetime": "2099-01-01T00:00:00",
+                "datetime": "2026-08-17T00:00:00",
             }
         ]
     )
@@ -108,7 +108,7 @@ def test_insert_and_query_series_and_anomalies():
                 "hw67": 0.0,
                 "hw78": 0.0,
                 "hw89": 0.0,
-                "datetime": "2099-01-01T00:00:00",
+                "datetime": "2026-08-17T00:00:00",
             }
         ]
     )
@@ -131,7 +131,7 @@ def test_insert_and_query_series_and_anomalies():
                 "hw12": 720.0,
                 "hw23": 0.0,
                 "hw34": 0.0,
-                "datetime": "2099-01-01T00:00:00",
+                "datetime": "2026-08-17T00:00:00",
             }
         ]
     )
@@ -144,7 +144,7 @@ def test_insert_and_query_series_and_anomalies():
 def test_weekly_history_upsert_and_retrieval():
     """Test weekly aggregated history records."""
     stats = {
-        "week_id": "2099_W01",
+        "week_id": "2026_W34",
         "total_records": 12500,
         "fleet_size": 84,
         "overall_qos": 94.5,
@@ -155,7 +155,7 @@ def test_weekly_history_upsert_and_retrieval():
 
     db.upsert_weekly_history("London", stats, models)
     hist = db.get_all_weekly_history("London")
-    assert any(h.get("week_id") == "2099_W01" for h in hist)
+    assert any(h.get("week_id") == "2026_W34" for h in hist)
 
-    single = db.get_single_week_data("London", "2099_W01")
+    single = db.get_single_week_data("London", "2026_W34")
     assert single.get("stats", {}).get("fleet_size") == 84

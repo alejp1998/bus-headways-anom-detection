@@ -371,11 +371,25 @@ def update_week_options(city: str):
         return [[{"label": "No history records found", "value": "none"}], "none"]
 
     options = []
+    import datetime
+
     for entry in history_index:
         wid = entry.get("week_id", "")
         ts = entry.get("timestamp", "")[:10]
         records = entry.get("total_records", 0)
-        label = f"{wid} (Started {ts}) — {records:,} records"
+        # Format human-readable calendar label
+        try:
+            parts = wid.split("_W")
+            if len(parts) == 2:
+                year, wnum = int(parts[0]), int(parts[1])
+                monday = datetime.date.fromisocalendar(year, wnum, 1)
+                sunday = datetime.date.fromisocalendar(year, wnum, 7)
+                date_range = f"{monday.strftime('%b %d')} – {sunday.strftime('%b %d, %Y')}"
+                label = f"Week {wnum} ({date_range}) — {records:,} records"
+            else:
+                label = f"{wid} (Started {ts}) — {records:,} records"
+        except Exception:
+            label = f"{wid} (Started {ts}) — {records:,} records"
         options.append({"label": label, "value": wid})
 
     default_value = options[0]["value"] if options else "none"
